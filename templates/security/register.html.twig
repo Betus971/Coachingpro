@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="coachpro">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Créer un compte — CoachPro</title>
+  {{ importmap('app') }}
+</head>
+<body class="bg-base-100 text-base-content min-h-screen flex items-center justify-center py-12">
+  <div class="w-full max-w-md px-6">
+
+    {# Logo #}
+    <div class="text-center mb-8">
+      <div class="font-display text-5xl text-primary leading-none">COACH</div>
+      <div class="font-display text-5xl text-base-content leading-none">PRO</div>
+      <div class="text-xs text-gray-500 tracking-widest mt-2 uppercase">Créer un compte</div>
+    </div>
+
+    {# Error #}
+    {% if error %}
+      <div class="alert alert-error rounded-none text-sm mb-5">
+        {{ error }}
+      </div>
+    {% endif %}
+
+    <form method="post" action="{{ path('app_register') }}" class="flex flex-col gap-4">
+
+      {# Identité #}
+      <div class="grid grid-cols-2 gap-3">
+        <div class="form-control">
+          <label class="label pb-1">
+            <span class="label-text text-xs tracking-widest uppercase text-gray-500">Prénom *</span>
+          </label>
+          <input type="text" name="first_name" required autofocus
+                 class="input input-bordered bg-base-300 border-neutral focus:border-primary w-full"
+                 placeholder="Léo">
+        </div>
+        <div class="form-control">
+          <label class="label pb-1">
+            <span class="label-text text-xs tracking-widest uppercase text-gray-500">Nom *</span>
+          </label>
+          <input type="text" name="last_name" required
+                 class="input input-bordered bg-base-300 border-neutral focus:border-primary w-full"
+                 placeholder="Dupont">
+        </div>
+      </div>
+
+      <div class="form-control">
+        <label class="label pb-1">
+          <span class="label-text text-xs tracking-widest uppercase text-gray-500">Email *</span>
+        </label>
+        <input type="email" name="email" required
+               class="input input-bordered bg-base-300 border-neutral focus:border-primary w-full"
+               placeholder="leo@example.com">
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <div class="form-control">
+          <label class="label pb-1">
+            <span class="label-text text-xs tracking-widest uppercase text-gray-500">Mot de passe *</span>
+          </label>
+          <input type="password" name="password" required minlength="8"
+                 class="input input-bordered bg-base-300 border-neutral focus:border-primary w-full"
+                 placeholder="8 car. min.">
+        </div>
+        <div class="form-control">
+          <label class="label pb-1">
+            <span class="label-text text-xs tracking-widest uppercase text-gray-500">Confirmer *</span>
+          </label>
+          <input type="password" name="confirm" required
+                 class="input input-bordered bg-base-300 border-neutral focus:border-primary w-full"
+                 placeholder="••••••••">
+        </div>
+      </div>
+
+      {# Rôle #}
+      <div class="form-control">
+        <label class="label pb-1">
+          <span class="label-text text-xs tracking-widest uppercase text-gray-500">Rôle</span>
+        </label>
+        <select name="role" class="select select-bordered bg-base-300 border-neutral focus:border-primary">
+          <option value="ROLE_CLIENT">Client (je suis suivi par un coach)</option>
+          <option value="ROLE_COACH">Coach (je gère des clients)</option>
+        </select>
+      </div>
+
+      {# Divider profil #}
+      <div class="divider text-xs text-gray-600 tracking-widest uppercase my-1">Profil physique (optionnel)</div>
+
+      <div class="grid grid-cols-3 gap-3">
+        <div class="form-control">
+          <label class="label pb-1">
+            <span class="label-text text-xs tracking-widest uppercase text-gray-500">Taille (cm)</span>
+          </label>
+          <input type="number" name="height_cm" min="100" max="250" placeholder="183"
+                 class="input input-bordered bg-base-300 border-neutral focus:border-primary w-full">
+        </div>
+        <div class="form-control">
+          <label class="label pb-1">
+            <span class="label-text text-xs tracking-widest uppercase text-gray-500">Sexe</span>
+          </label>
+          <select name="sex" class="select select-bordered bg-base-300 border-neutral focus:border-primary">
+            <option value="">—</option>
+            <option value="male">Homme</option>
+            <option value="female">Femme</option>
+            <option value="other">Autre</option>
+          </select>
+        </div>
+        <div class="form-control">
+          <label class="label pb-1">
+            <span class="label-text text-xs tracking-widest uppercase text-gray-500">Naissance</span>
+          </label>
+          <input type="date" name="birth_date"
+                 class="input input-bordered bg-base-300 border-neutral focus:border-primary w-full">
+        </div>
+      </div>
+
+      <button type="submit"
+              class="btn btn-primary w-full mt-2 font-display text-lg tracking-widest">
+        CRÉER MON COMPTE
+      </button>
+    </form>
+
+    <p class="text-center text-sm text-gray-500 mt-6">
+      Déjà un compte ?
+      <a href="{{ path('app_login') }}" class="text-primary hover:underline">Se connecter</a>
+    </p>
+
+  </div>
+</body>
+</html>

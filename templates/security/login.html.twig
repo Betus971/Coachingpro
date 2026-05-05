@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="coachpro">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Connexion — CoachPro</title>
+  {{ importmap('app') }}
+</head>
+<body class="bg-base-100 text-base-content min-h-screen flex items-center justify-center">
+  <div class="w-full max-w-sm px-6">
+
+    {# Logo #}
+    <div class="text-center mb-10">
+      <div class="font-display text-5xl text-primary leading-none">COACH</div>
+      <div class="font-display text-5xl text-base-content leading-none">PRO</div>
+      <div class="text-xs text-gray-500 tracking-widest mt-2 uppercase">Programme 121 → 95 kg</div>
+    </div>
+
+    {# Error #}
+    {% if error %}
+      <div class="alert alert-error rounded-none text-sm mb-4">
+        {{ error.messageKey|trans(error.messageData, 'security') }}
+      </div>
+    {% endif %}
+
+    {# Form #}
+    <form method="post" action="{{ path('app_login') }}" class="flex flex-col gap-4">
+      <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
+
+      <div class="form-control">
+        <label class="label pb-1">
+          <span class="label-text text-xs tracking-widest uppercase text-gray-500">Email</span>
+        </label>
+        <input type="email" name="_username" value="{{ last_username }}" required autofocus
+               class="input input-bordered bg-base-300 border-neutral focus:border-primary focus:outline-none w-full"
+               placeholder="leo@coachpro.local">
+      </div>
+
+      <div class="form-control">
+        <label class="label pb-1">
+          <span class="label-text text-xs tracking-widest uppercase text-gray-500">Mot de passe</span>
+        </label>
+        <input type="password" name="_password" required
+               class="input input-bordered bg-base-300 border-neutral focus:border-primary focus:outline-none w-full"
+               placeholder="••••••••">
+      </div>
+
+      <label class="flex items-center gap-3 cursor-pointer mt-1">
+        <input type="checkbox" name="_remember_me" class="checkbox checkbox-primary checkbox-sm">
+        <span class="text-sm text-gray-400">Se souvenir de moi</span>
+      </label>
+
+      <button type="submit"
+              class="btn btn-primary w-full mt-2 font-display text-lg tracking-widest">
+        CONNEXION
+      </button>
+    </form>
+
+    <p class="text-center text-sm text-gray-500 mt-6">
+      Pas encore de compte ?
+      <a href="{{ path('app_register') }}" class="text-primary hover:underline">Créer un compte</a>
+    </p>
+
+  </div>
+</body>
+</html>
