@@ -1,3 +1,150 @@
+@import "tailwindcss";
+@plugin "daisyui";
+
+@plugin "daisyui/theme" {
+  name: "coachpro";
+  default: true;
+  prefersdark: true;
+  color-scheme: dark;
+
+  --color-base-100: #0a0a0a;
+  --color-base-200: #141414;
+  --color-base-300: #1e1e1e;
+  --color-base-content: #f5f3ef;
+
+  --color-primary: #e8521a;
+  --color-primary-content: #0a0a0a;
+
+  --color-secondary: #2d9e6b;
+  --color-secondary-content: #0a0a0a;
+
+  --color-accent: #f0c040;
+  --color-accent-content: #0a0a0a;
+
+  --color-neutral: #2e2e2e;
+  --color-neutral-content: #f5f3ef;
+
+  --color-info: #3abff8;
+  --color-success: #2d9e6b;
+  --color-warning: #f0c040;
+  --color-error: #e8521a;
+
+  --rounded-box: 2px;
+  --rounded-btn: 2px;
+  --rounded-badge: 2px;
+  --tab-radius: 0;
+}
+
+/* ── Fonts ─────────────────────────────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,700;1,300&display=swap');
+
+* { box-sizing: border-box; }
+
 body {
-    background-color: skyblue;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 300;
+  background-color: #0a0a0a;
+  color: #f5f3ef;
+}
+
+/* ── Typography helpers ────────────────────────────────────────────────────── */
+.font-display {
+  font-family: 'Bebas Neue', sans-serif;
+  letter-spacing: 1px;
+}
+
+/* ── Sidebar ───────────────────────────────────────────────────────────────── */
+.sidebar {
+  width: 240px;
+  min-height: 100vh;
+  background: #0a0a0a;
+  border-right: 1px solid #222;
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0; left: 0;
+  z-index: 40;
+}
+
+.sidebar-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  font-size: 13px;
+  font-weight: 400;
+  color: #888;
+  text-decoration: none;
+  transition: all 0.15s;
+  border-left: 3px solid transparent;
+}
+.sidebar-nav-item:hover {
+  color: #f5f3ef;
+  background: #1e1e1e;
+  border-left-color: #333;
+}
+.sidebar-nav-item.active {
+  color: #f5f3ef;
+  background: #1e1e1e;
+  border-left-color: #e8521a;
+}
+
+/* ── Main content area ─────────────────────────────────────────────────────── */
+.main-content {
+  margin-left: 240px;
+  min-height: 100vh;
+}
+
+@media (max-width: 768px) {
+  .sidebar { display: none; }
+  .main-content { margin-left: 0; }
+}
+
+/* ── Section tags (like the mockup) ────────────────────────────────────────── */
+.section-tag {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: #0a0a0a;
+  background: #e8521a;
+  padding: 4px 10px;
+}
+.section-tag.green  { background: #2d9e6b; }
+.section-tag.yellow { background: #f0c040; }
+
+/* ── Cards ─────────────────────────────────────────────────────────────────── */
+.card-dark {
+  background: #1e1e1e;
+  border-radius: 2px;
+}
+
+/* ── Table ─────────────────────────────────────────────────────────────────── */
+.table-coachpro td, .table-coachpro th {
+  border-color: #2e2e2e;
+  font-size: 14px;
+}
+.table-coachpro th {
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: #888;
+  font-weight: 500;
+}
+
+/* ── Progress bars ─────────────────────────────────────────────────────────── */
+.macro-bar-prot { background: #2d9e6b; }
+.macro-bar-carb { background: #f0c040; }
+.macro-bar-fat  { background: #e8521a; }
+
+/* ── Radial gradient accent ────────────────────────────────────────────────── */
+.hero-glow::before {
+  content: '';
+  position: absolute;
+  top: -60px; right: -60px;
+  width: 300px; height: 300px;
+  background: radial-gradient(circle, rgba(232,82,26,0.12) 0%, transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
 }

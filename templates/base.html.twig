@@ -1,24 +1,97 @@
 <!DOCTYPE html>
-<html>
-    <head>
-        <meta charset="UTF-8">
-        <title>{% block title %}Welcome!{% endblock %}</title>
-        <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 128 128%22><text y=%221.2em%22 font-size=%2296%22>⚫️</text><text y=%221.3em%22 x=%220.2em%22 font-size=%2276%22 fill=%22%23fff%22>sf</text></svg>">
-        {% block stylesheets %}
-        {% endblock %}
+<html lang="fr" data-theme="coachpro">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}CoachPro{% endblock %}</title>
+  {{ importmap('app') }}
+</head>
+<body class="bg-base-100 text-base-content">
 
-        {% block javascripts %}
-            {% block importmap %}{{ importmap('app') }}{% endblock %}
-        {% endblock %}
+  {# ── Sidebar ────────────────────────────────────────────────────────────── #}
+  <aside class="sidebar">
+    {# Logo #}
+    <div class="px-5 py-6 border-b border-neutral">
+      <span class="font-display text-3xl text-primary leading-none">COACH</span>
+      <span class="font-display text-3xl text-base-content leading-none">PRO</span>
+      <div class="text-xs text-gray-500 tracking-widest mt-1">121 → 95 KG</div>
+    </div>
 
-        {% set frankenphpHotReload = app.request.server.get('FRANKENPHP_HOT_RELOAD') %}
-        {% if frankenphpHotReload %}
-        <meta name="frankenphp-hot-reload:url" content="{{ frankenphpHotReload }}">
-        <script src="https://cdn.jsdelivr.net/npm/idiomorph"></script>
-        <script src="https://cdn.jsdelivr.net/npm/frankenphp-hot-reload/+esm" type="module"></script>
-        {% endif %}
-    </head>
-    <body>
-        {% block body %}{% endblock %}
-    </body>
+    {# Nav #}
+    <nav class="flex-1 py-4">
+      {% set current = app.request.attributes.get('_route') %}
+      <a href="{{ path('app_dashboard') }}"
+         class="sidebar-nav-item {{ current == 'app_dashboard' ? 'active' : '' }}">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+        </svg>
+        Dashboard
+      </a>
+      <a href="{{ path('app_weight_index') }}"
+         class="sidebar-nav-item {{ current starts with 'app_weight' ? 'active' : '' }}">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/>
+        </svg>
+        Poids
+      </a>
+      <a href="{{ path('app_session_index') }}"
+         class="sidebar-nav-item {{ current starts with 'app_session' ? 'active' : '' }}">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                d="M13 10V3L4 14h7v7l9-11h-7z"/>
+        </svg>
+        Séances
+      </a>
+      <a href="{{ path('app_nutrition_index') }}"
+         class="sidebar-nav-item {{ current starts with 'app_nutrition' ? 'active' : '' }}">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+        </svg>
+        Nutrition
+      </a>
+      <a href="{{ path('app_program_show') }}"
+         class="sidebar-nav-item {{ current starts with 'app_program' ? 'active' : '' }}">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+        </svg>
+        Programme
+      </a>
+    </nav>
+
+    {# User footer #}
+    <div class="px-5 py-4 border-t border-neutral">
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="text-sm font-medium">{{ app.user ? app.user.firstName : '' }}</div>
+          <div class="text-xs text-gray-500">{{ app.user ? app.user.email : '' }}</div>
+        </div>
+        <a href="{{ path('app_logout') }}" class="btn btn-ghost btn-xs text-gray-500 hover:text-error">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                  d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+          </svg>
+        </a>
+      </div>
+    </div>
+  </aside>
+
+  {# ── Main content ──────────────────────────────────────────────────────── #}
+  <main class="main-content">
+    {# Flash messages #}
+    {% for type, messages in app.flashes %}
+      {% for message in messages %}
+        <div class="alert alert-{{ type == 'success' ? 'success' : (type == 'error' ? 'error' : 'info') }} rounded-none text-sm px-6 py-3">
+          {{ message }}
+        </div>
+      {% endfor %}
+    {% endfor %}
+
+    {% block body %}{% endblock %}
+  </main>
+
+</body>
 </html>
