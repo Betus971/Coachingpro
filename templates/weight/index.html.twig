@@ -1,0 +1,170 @@
+{% extends 'base.html.twig' %}
+{% block title %}Poids — CoachPro{% endblock %}
+
+{% block body %}
+<div class="px-8 py-8">
+
+  <div class="flex items-center justify-between mb-8">
+    <div>
+      <div class="section-tag mb-3">Suivi</div>
+      <h1 class="font-display text-5xl">HISTORIQUE POIDS</h1>
+    </div>
+    <div class="flex gap-3">
+      {# Import CSV Boditrax #}
+      <button onclick="document.getElementById('modal-import').showModal()"
+              class="btn btn-outline btn-accent font-display tracking-widest btn-sm">
+        ↑ IMPORT BODITRAX
+      </button>
+      <button onclick="document.getElementById('modal-weight').showModal()"
+              class="btn btn-primary font-display tracking-widest">
+        + NOUVELLE PESÉE
+      </button>
+    </div>
+  </div>
+
+  {% if logs is empty %}
+    <div class="card-dark p-12 text-center">
+      <div class="font-display text-4xl text-gray-600 mb-2">AUCUNE PESÉE</div>
+      <p class="text-sm text-gray-500 mb-6">Enregistre ta première pesée ou importe ton historique Boditrax.</p>
+      <button onclick="document.getElementById('modal-import').showModal()"
+              class="btn btn-outline btn-accent btn-sm font-display tracking-widest">
+        ↑ IMPORTER UN CSV BODITRAX
+      </button>
+    </div>
+  {% else %}
+    <div class="card-dark overflow-x-auto">
+      <table class="table table-coachpro w-full">
+        <thead>
+          <tr class="border-b border-neutral">
+            <th>Date</th>
+            <th>Poids</th>
+            <th>Variation</th>
+            <th class="text-accent">Graisse %</th>
+            <th class="text-accent">Graisse kg</th>
+            <th class="text-secondary">Muscle kg</th>
+            <th class="text-gray-500">Eau %</th>
+            <th class="text-gray-500">IMC</th>
+            <th>Source</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for i, log in logs %}
+            {% set prev = logs[i + 1] is defined ? logs[i + 1] : null %}
+            {% set diff = prev ? (log.weightKg - prev.weightKg) : null %}
+            <tr class="border-b border-neutral hover:bg-base-300 transition-colors">
+              <td class="text-gray-400 whitespace-nowrap">{{ log.loggedOn|date('d/m/Y') }}</td>
+
+              <td>
+                <span class="font-display text-2xl">{{ log.weightKg }}</span>
+                <span class="text-gray-500 text-sm"> kg</span>
+              </td>
+
+              <td>
+                {% if diff is not null %}
+                  <span class="font-display text-lg {{ diff < 0 ? 'text-secondary' : (diff > 0 ? 'text-error' : 'text-gray-500') }}">
+                    {{ diff > 0 ? '+' : '' }}{{ diff|number_format(1, '.') }}
+                  </span>
+                {% else %}
+                  <span class="text-gray-600">—</span>
+                {% endif %}
+              </td>
+
+              <td class="text-accent">{{ log.fatPercent ? log.fatPercent ~ '%' : '—' }}</td>
+              <td class="text-accent">{{ log.fatKg ? log.fatKg ~ ' kg' : '—' }}</td>
+              <td class="text-secondary">{{ log.muscleKg ? log.muscleKg ~ ' kg' : '—' }}</td>
+              <td class="text-gray-400">{{ log.waterPercent ? log.waterPercent ~ '%' : '—' }}</td>
+              <td class="text-gray-400">{{ log.bmi ?? '—' }}</td>
+
+              <td>
+                {% if log.source == 'boditrax_csv' %}
+                  <span class="badge badge-accent badge-xs font-display tracking-wide">BODITRAX</span>
+                {% else %}
+                  <span class="text-gray-600 text-xs">Manuel</span>
+                {% endif %}
+              </td>
+
+              <td>
+                <form action="{{ path('app_weight_delete', {id: log.id}) }}" method="post">
+                  <button type="submit" class="btn btn-ghost btn-xs text-gray-600 hover:text-error"
+                          onclick="return confirm('Supprimer cette pesée ?')">✕</button>
+                </form>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+</div>
+
+{# ── Modal: import CSV Boditrax ────────────────────────────────────────────── #}
+<dialog id="modal-import" class="modal">
+  <div class="modal-box bg-base-200 border border-neutral rounded-none max-w-lg">
+    <h3 class="font-display text-2xl mb-1">IMPORT BODITRAX</h3>
+    <p class="text-xs text-gray-500 mb-6">
+      Exporte tes mesures depuis l'appli ou le portail Boditrax (format CSV), puis importe-les ici.
+      Les mesures existantes pour la même date seront mises à jour.
+    </p>
+
+    {# Format attendu #}
+    <div class="bg-base-300 p-3 mb-5 text-xs text-gray-400 font-mono leading-relaxed overflow-x-auto">
+      Date,Poids (kg),IMC,Graisse corporelle (%),Graisse corporelle (kg),<br>
+      Masse musculaire (kg),Masse osseuse (kg),Eau corporelle (%)
+    </div>
+
+    <form action="{{ path('app_weight_import') }}" method="post" enctype="multipart/form-data"
+          class="flex flex-col gap-4">
+      <div class="form-control">
+        <label class="label pb-1">
+          <span class="label-text text-xs tracking-widest uppercase text-gray-500">Fichier CSV Boditrax</span>
+        </label>
+        <input type="file" name="csv_file" accept=".csv,text/csv" required
+               class="file-input file-input-bordered bg-base-300 border-neutral w-full">
+      </div>
+      <div class="flex gap-3 mt-2">
+        <button type="submit" class="btn btn-accent flex-1 font-display tracking-widest">IMPORTER</button>
+        <button type="button" onclick="document.getElementById('modal-import').close()"
+                class="btn btn-ghost flex-1">Annuler</button>
+      </div>
+    </form>
+  </div>
+  <form method="dialog" class="modal-backdrop"><button>close</button></form>
+</dialog>
+
+{# ── Modal: add weight ─────────────────────────────────────────────────────── #}
+<dialog id="modal-weight" class="modal">
+  <div class="modal-box bg-base-200 border border-neutral rounded-none max-w-sm">
+    <h3 class="font-display text-2xl mb-6">NOUVELLE PESÉE</h3>
+    <form action="{{ path('app_weight_new') }}" method="post" class="flex flex-col gap-4">
+      <div class="form-control">
+        <label class="label pb-1">
+          <span class="label-text text-xs tracking-widest uppercase text-gray-500">Poids (kg)</span>
+        </label>
+        <input type="number" name="weight_kg" step="0.1" min="50" max="300" placeholder="120.5"
+               class="input input-bordered bg-base-300 border-neutral focus:border-primary" required autofocus>
+      </div>
+      <div class="form-control">
+        <label class="label pb-1">
+          <span class="label-text text-xs tracking-widest uppercase text-gray-500">Date</span>
+        </label>
+        <input type="date" name="logged_on" value="{{ 'now'|date('Y-m-d') }}"
+               class="input input-bordered bg-base-300 border-neutral focus:border-primary">
+      </div>
+      <div class="form-control">
+        <label class="label pb-1">
+          <span class="label-text text-xs tracking-widest uppercase text-gray-500">Notes (optionnel)</span>
+        </label>
+        <input type="text" name="notes" placeholder="Matin à jeun…"
+               class="input input-bordered bg-base-300 border-neutral focus:border-primary">
+      </div>
+      <div class="flex gap-3 mt-2">
+        <button type="submit" class="btn btn-primary flex-1 font-display tracking-widest">ENREGISTRER</button>
+        <button type="button" onclick="document.getElementById('modal-weight').close()"
+                class="btn btn-ghost flex-1">Annuler</button>
+      </div>
+    </form>
+  </div>
+  <form method="dialog" class="modal-backdrop"><button>close</button></form>
+</dialog>
+{% endblock %}

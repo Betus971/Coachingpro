@@ -1,0 +1,162 @@
+{% extends 'base.html.twig' %}
+{% block title %}Nutrition — CoachPro{% endblock %}
+
+{% block body %}
+<div class="px-8 py-8">
+
+  <div class="flex items-center justify-between mb-8">
+    <div>
+      <div class="section-tag green mb-3">Nutrition</div>
+      <h1 class="font-display text-5xl">SUIVI MACROS</h1>
+      <p class="text-sm text-gray-500 mt-2">Objectif : 2 700 kcal · 190g Prot · 270g Gluc · 75g Lip</p>
+    </div>
+    <button onclick="document.getElementById('modal-nutrition').showModal()"
+            class="btn btn-secondary font-display tracking-widest">
+      + LOG AUJOURD'HUI
+    </button>
+  </div>
+
+  {# Today card #}
+  {% if today %}
+    {% set targets = {proteins: 190, carbs: 270, fats: 75, kcal: 2700} %}
+    <div class="card-dark p-6 mb-8">
+      <div class="flex items-center justify-between mb-4">
+        <div class="font-display text-xl text-secondary">AUJOURD'HUI</div>
+        <div class="font-display text-3xl">{{ today.kcal }} <span class="text-gray-500 text-lg">/ {{ targets.kcal }} kcal</span></div>
+      </div>
+      <div class="grid grid-cols-3 gap-4">
+        {% set macros = [
+          {label: 'Protéines', val: today.proteinsG, target: targets.proteins, color: 'bg-secondary'},
+          {label: 'Glucides',  val: today.carbsG,    target: targets.carbs,    color: 'bg-accent'},
+          {label: 'Lipides',   val: today.fatsG,     target: targets.fats,     color: 'bg-primary'},
+        ] %}
+        {% for m in macros %}
+          <div>
+            <div class="flex justify-between text-xs text-gray-400 mb-1">
+              <span>{{ m.label }}</span>
+              <span>{{ m.val }}g / {{ m.target }}g</span>
+            </div>
+            <div class="w-full bg-base-300 h-2">
+              <div class="{{ m.color }} h-2"
+                   style="width: {{ min((m.val / m.target * 100)|round, 100) }}%"></div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+
+    </div>
+  {% endif %}
+
+  {# History table #}
+  {% if logs is not empty %}
+    <div class="card-dark overflow-x-auto">
+      <table class="table table-coachpro w-full">
+        <thead>
+          <tr class="border-b border-neutral">
+            <th>Date</th>
+            <th>Kcal</th>
+            <th>Prot (g)</th>
+            <th>Gluc (g)</th>
+            <th>Lip (g)</th>
+            <th>Fibres</th>
+            <th>Eau</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for log in logs %}
+            <tr class="border-b border-neutral hover:bg-base-300 transition-colors">
+              <td class="text-gray-400">{{ log.loggedOn|date('d/m/Y') }}</td>
+              <td><span class="font-display text-xl">{{ log.kcal }}</span></td>
+              <td><span class="text-secondary font-medium">{{ log.proteinsG }}</span></td>
+              <td><span class="text-accent font-medium">{{ log.carbsG }}</span></td>
+              <td><span class="text-primary font-medium">{{ log.fatsG }}</span></td>
+              <td class="text-gray-400">{{ log.fiberG ?? '—' }}</td>
+              <td class="text-gray-400">{{ log.waterL ? log.waterL ~ ' L' : '—' }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="card-dark p-12 text-center">
+      <div class="font-display text-3xl text-gray-600 mb-2">AUCUN LOG</div>
+      <p class="text-sm text-gray-500">Commence à tracker tes macros pour voir ta progression.</p>
+    </div>
+  {% endif %}
+
+</div>
+
+{# ── Modal: log macros ─────────────────────────────────────────────────────── #}
+<dialog id="modal-nutrition" class="modal">
+  <div class="modal-box bg-base-200 border border-neutral rounded-none max-w-md">
+    <h3 class="font-display text-2xl mb-1">LOG MACROS</h3>
+    <p class="text-xs text-gray-500 mb-6 tracking-wide">Objectifs: 190g Prot · 270g Gluc · 75g Lip · 2 700 kcal</p>
+    <form action="{{ path('app_nutrition_new') }}" method="post" class="flex flex-col gap-4">
+      <div class="form-control">
+        <label class="label pb-1">
+          <span class="label-text text-xs tracking-widest uppercase text-gray-500">Date</span>
+        </label>
+        <input type="date" name="logged_on" value="{{ 'now'|date('Y-m-d') }}"
+               class="input input-bordered bg-base-300 border-neutral focus:border-primary">
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div class="form-control">
+          <label class="label pb-1">
+            <span class="label-text text-xs tracking-widest uppercase text-secondary">Protéines (g)</span>
+          </label>
+          <input type="number" name="proteins_g" min="0" max="500" placeholder="190"
+                 class="input input-bordered bg-base-300 border-neutral focus:border-secondary" required>
+        </div>
+        <div class="form-control">
+          <label class="label pb-1">
+            <span class="label-text text-xs tracking-widest uppercase text-accent">Glucides (g)</span>
+          </label>
+          <input type="number" name="carbs_g" min="0" max="1000" placeholder="270"
+                 class="input input-bordered bg-base-300 border-neutral focus:border-accent" required>
+        </div>
+        <div class="form-control">
+          <label class="label pb-1">
+            <span class="label-text text-xs tracking-widest uppercase text-primary">Lipides (g)</span>
+          </label>
+          <input type="number" name="fats_g" min="0" max="500" placeholder="75"
+                 class="input input-bordered bg-base-300 border-neutral focus:border-primary" required>
+        </div>
+        <div class="form-control">
+          <label class="label pb-1">
+            <span class="label-text text-xs tracking-widest uppercase text-gray-400">Calories (kcal)</span>
+          </label>
+          <input type="number" name="kcal" min="0" max="8000" placeholder="2700"
+                 class="input input-bordered bg-base-300 border-neutral focus:border-primary" required>
+        </div>
+        <div class="form-control">
+          <label class="label pb-1">
+            <span class="label-text text-xs tracking-widest uppercase text-gray-500">Fibres (g)</span>
+          </label>
+          <input type="number" name="fiber_g" min="0" max="200" placeholder="optionnel"
+                 class="input input-bordered bg-base-300 border-neutral">
+        </div>
+        <div class="form-control">
+          <label class="label pb-1">
+            <span class="label-text text-xs tracking-widest uppercase text-gray-500">Eau (L)</span>
+          </label>
+          <input type="number" name="water_l" step="0.1" min="0" max="10" placeholder="3.0"
+                 class="input input-bordered bg-base-300 border-neutral">
+        </div>
+      </div>
+      <div class="form-control">
+        <label class="label pb-1">
+          <span class="label-text text-xs tracking-widest uppercase text-gray-500">Notes</span>
+        </label>
+        <input type="text" name="notes" placeholder="Repas libre, restriction…"
+               class="input input-bordered bg-base-300 border-neutral focus:border-primary">
+      </div>
+      <div class="flex gap-3 mt-2">
+        <button type="submit" class="btn btn-secondary flex-1 font-display tracking-widest">ENREGISTRER</button>
+        <button type="button" onclick="document.getElementById('modal-nutrition').close()"
+                class="btn btn-ghost flex-1">Annuler</button>
+      </div>
+    </form>
+  </div>
+  <form method="dialog" class="modal-backdrop"><button>close</button></form>
+</dialog>
+{% endblock %}
