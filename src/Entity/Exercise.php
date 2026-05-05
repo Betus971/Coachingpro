@@ -36,13 +36,20 @@ use Symfony\Component\Validator\Constraints as Assert;
 )]
 class Exercise
 {
-    public const MUSCLE_CHEST = 'chest';
-    public const MUSCLE_BACK = 'back';
-    public const MUSCLE_LEGS = 'legs';
-    public const MUSCLE_SHOULDERS = 'shoulders';
-    public const MUSCLE_ARMS = 'arms';
-    public const MUSCLE_CORE = 'core';
-    public const MUSCLE_CARDIO = 'cardio';
+    public const MUSCLE_CHEST      = 'chest';
+    public const MUSCLE_BACK       = 'back';
+    public const MUSCLE_SHOULDERS  = 'shoulders';
+    public const MUSCLE_BICEPS     = 'biceps';
+    public const MUSCLE_TRICEPS    = 'triceps';
+    public const MUSCLE_QUADS      = 'quads';
+    public const MUSCLE_HAMSTRINGS = 'hamstrings';
+    public const MUSCLE_GLUTES     = 'glutes';
+    public const MUSCLE_CALVES     = 'calves';
+    public const MUSCLE_CORE       = 'core';
+    public const MUSCLE_CARDIO     = 'cardio';
+    /** @deprecated Use specific groups above */
+    public const MUSCLE_LEGS  = 'legs';
+    public const MUSCLE_ARMS  = 'arms';
 
     #[ORM\Id]
     #[ORM\Column(type: 'uuid', unique: true)]
@@ -84,8 +91,11 @@ class Exercise
     public static function getMuscleGroups(): array
     {
         return [
-            self::MUSCLE_CHEST, self::MUSCLE_BACK, self::MUSCLE_LEGS,
-            self::MUSCLE_SHOULDERS, self::MUSCLE_ARMS, self::MUSCLE_CORE, self::MUSCLE_CARDIO,
+            self::MUSCLE_CHEST, self::MUSCLE_BACK, self::MUSCLE_SHOULDERS,
+            self::MUSCLE_BICEPS, self::MUSCLE_TRICEPS,
+            self::MUSCLE_QUADS, self::MUSCLE_HAMSTRINGS, self::MUSCLE_GLUTES, self::MUSCLE_CALVES,
+            self::MUSCLE_CORE, self::MUSCLE_CARDIO,
+            self::MUSCLE_LEGS, self::MUSCLE_ARMS, // rétrocompat
         ];
     }
 

@@ -12,16 +12,18 @@ security:
 
     firewalls:
         dev:
-            # Ensure dev tools and static assets are always allowed
             pattern: ^/(_profiler|_wdt|assets|build)/
             security: false
 
+        # ── API stateless JWT ──────────────────────────────────────────────────
         login:
             pattern: ^/api/login
             stateless: true
             provider: app_user_provider
             json_login:
                 check_path: /api/login_check
+                username_path: email
+                password_path: password
                 success_handler: lexik_jwt_authentication.handler.authentication_success
                 failure_handler: lexik_jwt_authentication.handler.authentication_failure
 
@@ -31,13 +33,28 @@ security:
             provider: app_user_provider
             jwt: ~
 
-        main:
+        # ── Web (form_login session) ──────────────────────────────────────────
+        web:
             lazy: true
             provider: app_user_provider
+            form_login:
+                login_path: app_login
+                check_path: app_login
+                default_target_path: app_dashboard
+                enable_csrf: true
+            logout:
+                path: app_logout
+                target: app_login
+            remember_me:
+                secret: '%kernel.secret%'
+                lifetime: 604800 # 7 jours
 
     access_control:
-        - { path: ^/api/login, roles: PUBLIC_ACCESS }
-        # - { path: ^/api,       roles: IS_AUTHENTICATED_FULLY }
+        - { path: ^/api/login,  roles: PUBLIC_ACCESS }
+        - { path: ^/api,        roles: IS_AUTHENTICATED_FULLY }
+        - { path: ^/login,    roles: PUBLIC_ACCESS }
+        - { path: ^/register, roles: PUBLIC_ACCESS }
+        - { path: ^/,         roles: IS_AUTHENTICATED_FULLY }
 
 when@test:
     security:
