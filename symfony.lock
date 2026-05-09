@@ -61,6 +61,18 @@
             "./migrations/.gitignore"
         ]
     },
+    "knpuniversity/oauth2-client-bundle": {
+        "version": "2.20",
+        "recipe": {
+            "repo": "github.com/symfony/recipes-contrib",
+            "branch": "main",
+            "version": "1.20",
+            "ref": "1ff300d8c030f55c99219cc55050b97a695af3f6"
+        },
+        "files": [
+            "./config/packages/knpu_oauth2_client.yaml"
+        ]
+    },
     "lexik/jwt-authentication-bundle": {
         "version": "3.2",
         "recipe": {
@@ -328,6 +340,9 @@
             "version": "7.0",
             "ref": "0df5844274d871b37fc3816c57a768ffc60a43a5"
         }
+    },
+    "symfony/ux-chartjs": {
+        "version": "v3.0.0"
     },
     "symfony/ux-turbo": {
         "version": "3.0",

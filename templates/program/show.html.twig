@@ -2,15 +2,15 @@
 {% block title %}Programme — CoachPro{% endblock %}
 
 {% block body %}
-<div class="px-8 py-8">
+<div class="px-6 md:px-8 py-8">
 
   <div class="section-tag mb-3">Programme</div>
-  <h1 class="font-display text-5xl mb-2">
+  <h1 class="font-display text-4xl md:text-5xl mb-2">
     {% if assignment %}{{ assignment.program.name }}{% else %}AUCUN PROGRAMME ACTIF{% endif %}
   </h1>
 
   {% if assignment %}
-    <p class="text-gray-500 text-sm mb-8">
+    <p class="text-muted text-sm mb-8">
       Démarré le {{ assignment.startDate|date('d/m/Y') }}
       {% if assignment.program.durationWeeks %}
         · {{ assignment.program.durationWeeks }} semaines (~{{ (assignment.program.durationWeeks / 4.33)|round }} mois)
@@ -18,14 +18,14 @@
     </p>
 
     {% if assignment.program.description %}
-      <div class="card-dark p-5 mb-8 text-sm text-gray-400 border-l-2 border-primary max-w-2xl">
+      <div class="card-coach p-5 mb-8 text-sm text-muted-strong border-l-2 border-primary max-w-2xl">
         {{ assignment.program.description }}
       </div>
     {% endif %}
 
     {# Jours de la semaine #}
     <div class="flex flex-col gap-4">
-      {% set restDays = [2, 4, 7] %} {# Mardi, Jeudi, Dimanche #}
+      {% set restDays = [2, 4, 7] %}
 
       {% set templatesIndexed = {} %}
       {% for template in assignment.program.workoutTemplates %}
@@ -38,7 +38,7 @@
         {% set template = templatesIndexed[dayNum] is defined ? templatesIndexed[dayNum] : null %}
         {% set isToday = 'now'|date('N') == dayNum %}
 
-        <div class="card-dark overflow-hidden border-l-4 {{ template and 'cardio' in template.name|lower ? 'border-accent' : (template ? 'border-primary' : 'border-neutral') }} {{ isToday ? 'ring-1 ring-primary/30' : '' }}">
+        <div class="card-coach overflow-hidden border-l-4 {{ template and 'cardio' in template.name|lower ? 'border-accent' : (template ? 'border-primary' : 'border-neutral') }} {{ isToday ? 'ring-1 ring-primary/30' : '' }}">
           <div class="px-5 py-4 flex items-center justify-between">
             <div class="flex items-center gap-4">
               <span class="font-display text-2xl {{ isToday ? 'text-primary' : '' }}">{{ dayName }}</span>
@@ -47,7 +47,7 @@
               {% endif %}
             </div>
             <div class="text-xs tracking-widest uppercase font-medium
-              {{ template ? (('cardio' in template.name|lower) ? 'text-accent' : 'text-primary') : 'text-gray-600' }}">
+              {{ template ? (('cardio' in template.name|lower) ? 'text-accent' : 'text-primary') : 'text-muted' }}">
               {% if template %}
                 {{ template.name|split('—')|last|trim }}
               {% else %}
@@ -58,7 +58,7 @@
 
           {% if template %}
             <div class="px-5 pb-4">
-              <p class="text-xs text-gray-500 italic mb-3">
+              <p class="text-xs text-muted italic mb-3">
                 {% if 'push' in template.name|lower %}Séance force + hypertrophie · 60–70 min
                 {% elseif 'pull' in template.name|lower %}Séance force + hypertrophie · 60–70 min
                 {% elseif 'leg' in template.name|lower or 'cuiss' in template.name|lower %}Séance force + hypertrophie · 60–70 min
@@ -84,7 +84,7 @@
               {% endif %}
             </div>
           {% else %}
-            <div class="px-5 pb-4 text-sm text-gray-600">
+            <div class="px-5 pb-4 text-sm text-muted">
               Marche 30–45 min · étirements · récupération
             </div>
           {% endif %}
@@ -96,7 +96,7 @@
     <div class="mt-10">
       <div class="section-tag mb-4">Objectifs</div>
       <h2 class="font-display text-3xl mb-4">JALONS</h2>
-      <div class="card-dark divide-y divide-neutral">
+      <div class="card-coach divide-y divide-neutral">
         {% for milestone in [
           {label: 'Départ', weight: '121.2 kg', cls: ''},
           {label: 'Mois 2', weight: '~113–115 kg', cls: 'text-secondary'},
@@ -105,7 +105,7 @@
           {label: 'Mois 9 🎯', weight: '~95–97 kg', cls: 'text-primary'},
         ] %}
           <div class="flex justify-between items-center px-5 py-3 text-sm">
-            <span class="text-gray-400">{{ milestone.label }}</span>
+            <span class="text-muted-strong">{{ milestone.label }}</span>
             <span class="{{ milestone.cls }} font-medium">{{ milestone.weight }}</span>
           </div>
         {% endfor %}
@@ -113,8 +113,8 @@
     </div>
 
   {% else %}
-    <div class="card-dark p-12 text-center mt-8">
-      <div class="font-display text-3xl text-gray-600">AUCUN PROGRAMME ASSIGNÉ</div>
+    <div class="card-coach p-12 text-center mt-8">
+      <div class="font-display text-3xl text-muted">AUCUN PROGRAMME ASSIGNÉ</div>
     </div>
   {% endif %}
 

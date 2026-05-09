@@ -1,0 +1,63 @@
+{% extends 'base.html.twig' %}
+{% block title %}Dashboard Coach — CoachPro{% endblock %}
+
+{% block body %}
+<div class="p-6">
+  
+  <div role="tablist" class="tabs tabs-boxed mb-6 bg-base-200">
+    <input type="radio" name="coach_tabs" role="tab" class="tab font-display tracking-widest text-lg" aria-label="MES CLIENTS" checked="checked" />
+    <div role="tabpanel" class="tab-content bg-base-100 border-base-300 rounded-box py-6">
+      
+      <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold text-primary">Vue Coach</h1>
+        <button class="btn btn-sm btn-outline btn-primary">Nouveau Client</button>
+      </div>
+
+      <div class="card bg-base-200 shadow-xl border border-base-300">
+        <div class="card-body">
+          <h2 class="card-title mb-4">Mes Clients</h2>
+          
+          {% if clients is empty %}
+            <p class="text-muted">Vous n'avez pas encore de clients assignés.</p>
+          {% else %}
+            <div class="overflow-x-auto">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Nom</th>
+                    <th>Email</th>
+                    <th>Inscrit le</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for client in clients %}
+                    <tr class="hover:bg-base-300 transition-colors">
+                      <td class="font-medium">{{ client.firstName }} {{ client.lastName }}</td>
+                      <td class="text-muted-strong">{{ client.email }}</td>
+                      <td>{{ client.createdAt|date('d/m/Y') }}</td>
+                      <td>
+                        <button class="btn btn-xs btn-outline btn-secondary">Voir dossier</button>
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+    </div>
+
+    <input type="radio" name="coach_tabs" role="tab" class="tab font-display tracking-widest text-lg" aria-label="MON PROGRAMME" />
+    <div role="tabpanel" class="tab-content bg-base-100 border-base-300 rounded-box py-6">
+      
+      {# On inclut simplement le contenu de la vue client avec notre contexte actuel #}
+      {{ include('dashboard/_client_content.html.twig') }}
+
+    </div>
+  </div>
+
+</div>
+{% endblock %}

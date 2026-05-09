@@ -90,6 +90,10 @@ class NutritionLog
     #[Groups(['nutrition:read', 'nutrition:write'])]
     private ?string $notes = null;
 
+    #[ORM\Column(length: 255, nullable: true)]
+    #[Groups(['nutrition:read', 'nutrition:write'])]
+    private ?string $imageFilename = null;
+
     #[ORM\Column]
     #[Groups(['nutrition:read'])]
     private \DateTimeImmutable $createdAt;
@@ -119,5 +123,7 @@ class NutritionLog
     public function setWaterL(?string $v): self { $this->waterL = $v; return $this; }
     public function getNotes(): ?string { return $this->notes; }
     public function setNotes(?string $n): self { $this->notes = $n; return $this; }
+    public function getImageFilename(): ?string { return $this->imageFilename; }
+    public function setImageFilename(?string $f): self { $this->imageFilename = $f; return $this; }
     public function getCreatedAt(): \DateTimeImmutable { return $this->createdAt; }
 }

@@ -107,6 +107,26 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[Groups(['user:read', 'user:write'])]
     private ?\DateTimeImmutable $birthDate = null;
 
+    // ── Google Fit OAuth tokens ─────────────────────────────────────────────
+    // Volontairement HORS des groupes Serializer : ces tokens ne doivent JAMAIS
+    // sortir via l'API. Chiffrer en prod (kernel.secret + Sodium) si on veut être propre.
+
+    #[ORM\Column(type: 'text', nullable: true)]
+    private ?string $googleAccessToken = null;
+
+    #[ORM\Column(type: 'text', nullable: true)]
+    private ?string $googleRefreshToken = null;
+
+    #[ORM\Column(type: 'datetime_immutable', nullable: true)]
+    private ?\DateTimeImmutable $googleAccessExpiresAt = null;
+
+    /** Exposé en lecture seule pour que le front sache si la connexion Google est active. */
+    #[Groups(['user:read'])]
+    public function isGoogleFitConnected(): bool
+    {
+        return $this->googleRefreshToken !== null;
+    }
+
     #[ORM\Column]
     #[Groups(['user:read'])]
     private \DateTimeImmutable $createdAt;
@@ -118,10 +138,26 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         $this->createdAt = new \DateTimeImmutable();
     }
 
-    public function getId(): Uuid { return $this->id; }
-    public function getEmail(): string { return $this->email; }
-    public function setEmail(string $email): self { $this->email = $email; return $this; }
-    public function getUserIdentifier(): string { return $this->email; }
+    public function getId(): Uuid
+    {
+        return $this->id;
+    }
+
+    public function getEmail(): string
+    {
+        return $this->email;
+    }
+
+    public function setEmail(string $email): self
+    {
+        $this->email = $email;
+        return $this;
+    }
+
+    public function getUserIdentifier(): string
+    {
+        return $this->email;
+    }
 
     public function getRoles(): array
     {
@@ -129,32 +165,176 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         $roles[] = 'ROLE_USER';
         return array_values(array_unique($roles));
     }
-    public function setRoles(array $roles): self { $this->roles = $roles; return $this; }
 
-    public function getPassword(): string { return $this->password; }
-    public function setPassword(string $password): self { $this->password = $password; return $this; }
-    public function getPlainPassword(): ?string { return $this->plainPassword; }
-    public function setPlainPassword(?string $p): self { $this->plainPassword = $p; return $this; }
-    public function eraseCredentials(): void { $this->plainPassword = null; }
+    public function setRoles(array $roles): self
+    {
+        $this->roles = $roles;
+        return $this;
+    }
 
-    public function getFirstName(): string { return $this->firstName; }
-    public function setFirstName(string $f): self { $this->firstName = $f; return $this; }
-    public function getLastName(): string { return $this->lastName; }
-    public function setLastName(string $l): self { $this->lastName = $l; return $this; }
+    public function getPassword(): string
+    {
+        return $this->password;
+    }
 
-    public function getCoach(): ?self { return $this->coach; }
-    public function setCoach(?self $c): self { $this->coach = $c; return $this; }
+    public function setPassword(string $password): self
+    {
+        $this->password = $password;
+        return $this;
+    }
+
+    public function getPlainPassword(): ?string
+    {
+        return $this->plainPassword;
+    }
+
+    public function setPlainPassword(?string $p): self
+    {
+        $this->plainPassword = $p;
+        return $this;
+    }
+
+    public function eraseCredentials(): void
+    {
+        $this->plainPassword = null;
+    }
+
+    public function getFirstName(): string
+    {
+        return $this->firstName;
+    }
+
+    public function setFirstName(string $f): self
+    {
+        $this->firstName = $f;
+        return $this;
+    }
+
+    public function getLastName(): string
+    {
+        return $this->lastName;
+    }
+
+    public function setLastName(string $l): self
+    {
+        $this->lastName = $l;
+        return $this;
+    }
+
+    public function getCoach(): ?self
+    {
+        return $this->coach;
+    }
+
+    public function setCoach(?self $c): self
+    {
+        $this->coach = $c;
+        return $this;
+    }
+
     /** @return Collection<int, self> */
-    public function getClients(): Collection { return $this->clients; }
+    public function getClients(): Collection
+    {
+        return $this->clients;
+    }
 
-    public function getHeightCm(): ?int { return $this->heightCm; }
-    public function setHeightCm(?int $h): self { $this->heightCm = $h; return $this; }
-    public function getSex(): ?string { return $this->sex; }
-    public function setSex(?string $s): self { $this->sex = $s; return $this; }
-    public function getBirthDate(): ?\DateTimeImmutable { return $this->birthDate; }
-    public function setBirthDate(?\DateTimeImmutable $d): self { $this->birthDate = $d; return $this; }
-    public function getCreatedAt(): \DateTimeImmutable { return $this->createdAt; }
+    public function getHeightCm(): ?int
+    {
+        return $this->heightCm;
+    }
 
-    public function isCoach(): bool { return in_array(self::ROLE_COACH, $this->roles, true); }
-    public function isClientOf(self $coach): bool { return $this->coach?->getId()->equals($coach->getId()) ?? false; }
+    public function setHeightCm(?int $h): self
+    {
+        $this->heightCm = $h;
+        return $this;
+    }
+
+    public function getSex(): ?string
+    {
+        return $this->sex;
+    }
+
+    public function setSex(?string $s): self
+    {
+        $this->sex = $s;
+        return $this;
+    }
+
+    public function getBirthDate(): ?\DateTimeImmutable
+    {
+        return $this->birthDate;
+    }
+
+    public function setBirthDate(?\DateTimeImmutable $d): self
+    {
+        $this->birthDate = $d;
+        return $this;
+    }
+
+    public function getCreatedAt(): \DateTimeImmutable
+    {
+        return $this->createdAt;
+    }
+
+    public function isCoach(): bool
+    {
+        return in_array(self::ROLE_COACH, $this->roles, true);
+    }
+
+    public function isClientOf(self $coach): bool
+    {
+        return $this->coach?->getId()->equals($coach->getId()) ?? false;
+    }
+
+    // ── Google Fit tokens (getters/setters internes) ────────────────────────
+    public function getGoogleAccessToken(): ?string
+    {
+        return $this->googleAccessToken;
+    }
+
+    public function setGoogleAccessToken(?string $token): self
+    {
+        $this->googleAccessToken = $token;
+        return $this;
+    }
+
+    public function getGoogleRefreshToken(): ?string
+    {
+        return $this->googleRefreshToken;
+    }
+
+    public function setGoogleRefreshToken(?string $token): self
+    {
+        $this->googleRefreshToken = $token;
+        return $this;
+    }
+
+    public function getGoogleAccessExpiresAt(): ?\DateTimeImmutable
+    {
+        return $this->googleAccessExpiresAt;
+    }
+
+    public function setGoogleAccessExpiresAt(?\DateTimeImmutable $expiresAt): self
+    {
+        $this->googleAccessExpiresAt = $expiresAt;
+        return $this;
+    }
+
+    /** Considère expiré si déjà passé OU si expire dans les 60s (marge de sécurité). */
+    public function isGoogleAccessTokenExpired(): bool
+    {
+        if ($this->googleAccessToken === null || $this->googleAccessExpiresAt === null) {
+            return true;
+        }
+        return $this->googleAccessExpiresAt->getTimestamp() <= (time() + 60);
+    }
+
+    /** Reset complet : appelé quand l'utilisateur déconnecte Google Fit. */
+    public function disconnectGoogleFit(): self
+    {
+        $this->googleAccessToken = null;
+        $this->googleRefreshToken = null;
+        $this->googleAccessExpiresAt = null;
+        return $this;
+    }
 }
