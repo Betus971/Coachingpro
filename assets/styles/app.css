@@ -1,38 +1,35 @@
 @import "tailwindcss";
-@plugin "daisyui";
 
+/* Fix for Windows path scanning in Tailwind v4 */
+@source "../../templates";
+@source "../../src";
+@source "../../assets";
+
+@plugin "daisyui" {
+  themes: nord, sunset, caramellatte, abyss, light, winter, corporate;
+}
+
+/* Custom coachpro theme */
 @plugin "daisyui/theme" {
   name: "coachpro";
-  default: true;
-  prefersdark: true;
+  default: false;
   color-scheme: dark;
 
-  --color-base-100: #0a0a0a;
-  --color-base-200: #141414;
-  --color-base-300: #1e1e1e;
-  --color-base-content: #f5f3ef;
+  --color-base-100: #111827;
+  --color-base-200: #1f2937;
+  --color-base-300: #374151;
+  --color-base-content: #f3f4f6;
 
-  --color-primary: #e8521a;
-  --color-primary-content: #0a0a0a;
-
-  --color-secondary: #2d9e6b;
-  --color-secondary-content: #0a0a0a;
-
-  --color-accent: #f0c040;
-  --color-accent-content: #0a0a0a;
-
-  --color-neutral: #2e2e2e;
-  --color-neutral-content: #f5f3ef;
-
+  --color-primary: #f97316;
+  --color-primary-content: #111827;
+  
+  --color-neutral: #1f2937;
+  --color-neutral-content: #f3f4f6;
+  
+  --color-success: #36d399;
+  --color-error: #f87272;
+  --color-warning: #fbbd23;
   --color-info: #3abff8;
-  --color-success: #2d9e6b;
-  --color-warning: #f0c040;
-  --color-error: #e8521a;
-
-  --rounded-box: 2px;
-  --rounded-btn: 2px;
-  --rounded-badge: 2px;
-  --tab-radius: 0;
 }
 
 /* ── Fonts ─────────────────────────────────────────────────────────────────── */
@@ -42,9 +39,6 @@
 
 body {
   font-family: 'DM Sans', sans-serif;
-  font-weight: 300;
-  background-color: #0a0a0a;
-  color: #f5f3ef;
 }
 
 /* ── Typography helpers ────────────────────────────────────────────────────── */
@@ -53,98 +47,26 @@ body {
   letter-spacing: 1px;
 }
 
-/* ── Sidebar ───────────────────────────────────────────────────────────────── */
-.sidebar {
-  width: 240px;
-  min-height: 100vh;
-  background: #0a0a0a;
-  border-right: 1px solid #222;
-  display: flex;
-  flex-direction: column;
-  position: fixed;
-  top: 0; left: 0;
-  z-index: 40;
+/* ── Muted text helper ─────────────────────────────── */
+.text-muted {
+  opacity: 0.5;
+}
+.text-muted-strong {
+  opacity: 0.65;
 }
 
-.sidebar-nav-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 20px;
-  font-size: 13px;
-  font-weight: 400;
-  color: #888;
-  text-decoration: none;
-  transition: all 0.15s;
-  border-left: 3px solid transparent;
+/* ── Scrollbar styling ────────────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
 }
-.sidebar-nav-item:hover {
-  color: #f5f3ef;
-  background: #1e1e1e;
-  border-left-color: #333;
+::-webkit-scrollbar-track {
+  background: var(--fallback-b2,oklch(var(--b2)/var(--tw-bg-opacity, 1)));
 }
-.sidebar-nav-item.active {
-  color: #f5f3ef;
-  background: #1e1e1e;
-  border-left-color: #e8521a;
+::-webkit-scrollbar-thumb {
+  background: var(--fallback-bc,oklch(var(--bc)/0.2));
+  border-radius: 3px;
 }
-
-/* ── Main content area ─────────────────────────────────────────────────────── */
-.main-content {
-  margin-left: 240px;
-  min-height: 100vh;
-}
-
-@media (max-width: 768px) {
-  .sidebar { display: none; }
-  .main-content { margin-left: 0; }
-}
-
-/* ── Section tags (like the mockup) ────────────────────────────────────────── */
-.section-tag {
-  display: inline-block;
-  font-size: 10px;
-  font-weight: 500;
-  letter-spacing: 3px;
-  text-transform: uppercase;
-  color: #0a0a0a;
-  background: #e8521a;
-  padding: 4px 10px;
-}
-.section-tag.green  { background: #2d9e6b; }
-.section-tag.yellow { background: #f0c040; }
-
-/* ── Cards ─────────────────────────────────────────────────────────────────── */
-.card-dark {
-  background: #1e1e1e;
-  border-radius: 2px;
-}
-
-/* ── Table ─────────────────────────────────────────────────────────────────── */
-.table-coachpro td, .table-coachpro th {
-  border-color: #2e2e2e;
-  font-size: 14px;
-}
-.table-coachpro th {
-  font-size: 10px;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  color: #888;
-  font-weight: 500;
-}
-
-/* ── Progress bars ─────────────────────────────────────────────────────────── */
-.macro-bar-prot { background: #2d9e6b; }
-.macro-bar-carb { background: #f0c040; }
-.macro-bar-fat  { background: #e8521a; }
-
-/* ── Radial gradient accent ────────────────────────────────────────────────── */
-.hero-glow::before {
-  content: '';
-  position: absolute;
-  top: -60px; right: -60px;
-  width: 300px; height: 300px;
-  background: radial-gradient(circle, rgba(232,82,26,0.12) 0%, transparent 70%);
-  border-radius: 50%;
-  pointer-events: none;
+::-webkit-scrollbar-thumb:hover {
+  background: var(--fallback-p,oklch(var(--p)/var(--tw-bg-opacity, 1)));
 }

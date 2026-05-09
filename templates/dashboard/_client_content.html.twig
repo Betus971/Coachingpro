@@ -1,0 +1,181 @@
+<div class="relative overflow-hidden hero-glow">
+
+  {# ── Hero header ──────────────────────────────────────────────────────── #}
+  <div class="px-6 md:px-8 pt-8 md:pt-10 pb-6 border-b border-base-300">
+    <div class="text-xs tracking-widest uppercase text-primary mb-2">Programme actif · 1m83</div>
+    <h1 class="font-display text-5xl md:text-6xl leading-none">
+      {{ startKg }} KG <span class="text-primary">→ {{ targetKg }} KG</span>
+    </h1>
+    <p class="text-sm text-muted mt-3 max-w-lg">
+      Objectif de perte : {{ (startKg - targetKg)|number_format(1, '.') }} kg · Programme PPL + Cardio
+    </p>
+
+    {# Stat cards #}
+    <div class="flex flex-wrap gap-6 md:gap-8 mt-6">
+      <div class="stat p-0 bg-transparent">
+        <div class="stat-value font-display text-3xl md:text-4xl text-primary">
+          {{ currentKg|number_format(1, '.') }} kg
+        </div>
+        <div class="stat-desc text-xs tracking-widest uppercase text-muted mt-1">Poids actuel</div>
+      </div>
+      <div class="stat p-0 bg-transparent">
+        <div class="stat-value font-display text-3xl md:text-4xl {{ kilosPerdus > 0 ? 'text-secondary' : 'text-base-content' }}">
+          {% if kilosPerdus > 0 %}−{% endif %}{{ kilosPerdus|number_format(1, '.') }} kg
+        </div>
+        <div class="stat-desc text-xs tracking-widest uppercase text-muted mt-1">Perdu depuis le départ</div>
+      </div>
+      <div class="stat p-0 bg-transparent">
+        <div class="stat-value font-display text-3xl md:text-4xl">
+          {{ kilosRestants|number_format(1, '.') }} kg
+        </div>
+        <div class="stat-desc text-xs tracking-widest uppercase text-muted mt-1">Restant à perdre</div>
+      </div>
+    </div>
+
+    {# Progress bar #}
+    <div class="mt-6 max-w-lg">
+      <div class="flex justify-between text-xs text-muted mb-2">
+        <span>{{ startKg }} kg</span>
+        <span class="text-primary font-medium" style="opacity:1">{{ progress }}% atteint</span>
+        <span>{{ targetKg }} kg 🎯</span>
+      </div>
+      <progress class="progress progress-primary w-full h-3" value="{{ progress }}" max="100"></progress>
+    </div>
+  </div>
+
+  {# ── Today's workout ───────────────────────────────────────────────────── #}
+  <div class="px-6 md:px-8 py-6 border-b border-base-300">
+    {% if todayWorkout %}
+      <div class="badge badge-primary badge-sm mb-4">Aujourd'hui</div>
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
+        <h2 class="font-display text-3xl">{{ todayWorkout.name }}</h2>
+        <a href="{{ path('app_session_new') }}" class="btn btn-primary btn-sm font-display tracking-widest">
+          + LOGGER CETTE SÉANCE
+        </a>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        {% for et in todayWorkout.exerciseTemplates %}
+          <div class="badge badge-outline text-xs">
+            {{ et.exercise.name }}
+            <span class="ml-1 text-primary font-display">{{ et.targetSets }}×{{ et.targetRepsMin }}{% if et.targetRepsMax != et.targetRepsMin %}–{{ et.targetRepsMax }}{% endif %}</span>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="badge badge-success badge-sm mb-4">Aujourd'hui</div>
+      <h2 class="font-display text-3xl text-muted-strong">REPOS ACTIF</h2>
+      <p class="text-sm text-muted mt-2">Marche 30–45 min · étirements · récupération</p>
+    {% endif %}
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-0">
+
+    {# ── Recent weight logs ──────────────────────────────────────────────── #}
+    <div class="px-6 md:px-8 py-6 border-b lg:border-r border-base-300">
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <div class="badge badge-neutral badge-sm mb-2">Poids</div>
+          <h3 class="font-display text-2xl">HISTORIQUE</h3>
+        </div>
+        <a href="{{ path('app_weight_index') }}" class="btn btn-ghost btn-xs text-muted">Tout voir →</a>
+      </div>
+
+      {% if chart.data.datasets is empty %}
+        <p class="text-sm text-muted">Aucune pesée enregistrée.</p>
+      {% else %}
+        {# Chart.js #}
+        <div class="mb-4 bg-base-200 rounded-xl p-2 w-full">
+          {{ render_chart(chart) }}
+        </div>
+      {% endif %}
+
+      {# Quick add form #}
+      <form action="{{ path('app_weight_new') }}" method="post" class="flex gap-2 mt-4">
+        <input type="number" name="weight_kg" step="0.1" min="50" max="300" placeholder="123.5"
+               class="input input-sm input-bordered bg-base-300 border-base-300 focus:border-primary w-28" required>
+        <input type="date" name="logged_on" value="{{ 'now'|date('Y-m-d') }}"
+               class="input input-sm input-bordered bg-base-300 border-base-300 focus:border-primary flex-1">
+        <button class="btn btn-primary btn-sm">+</button>
+      </form>
+    </div>
+
+    {# ── Today's nutrition ───────────────────────────────────────────────── #}
+    <div class="px-6 md:px-8 py-6 border-b border-base-300">
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <div class="badge badge-success badge-sm mb-2">Nutrition</div>
+          <h3 class="font-display text-2xl">MACROS DU JOUR</h3>
+        </div>
+        <a href="{{ path('app_nutrition_index') }}" class="btn btn-ghost btn-xs text-muted">Historique →</a>
+      </div>
+
+      {% set targets = {proteins: 190, carbs: 270, fats: 75, kcal: 2700} %}
+      {% if todayNutrition %}
+        {# Kcal #}
+        <div class="flex justify-between text-sm mb-3">
+          <span class="text-muted-strong">Calories</span>
+          <span class="font-display text-xl">
+            {{ todayNutrition.kcal }}
+            <span class="text-muted text-sm">/ {{ targets.kcal }} kcal</span>
+          </span>
+        </div>
+        {# Macro bars #}
+        {% set macros = [
+          {label: 'Protéines', val: todayNutrition.proteinsG, target: targets.proteins, cls: 'progress-secondary'},
+          {label: 'Glucides',  val: todayNutrition.carbsG,    target: targets.carbs,    cls: 'progress-accent'},
+          {label: 'Lipides',   val: todayNutrition.fatsG,     target: targets.fats,     cls: 'progress-primary'},
+        ] %}
+        {% for m in macros %}
+          <div class="mb-3">
+            <div class="flex justify-between text-xs text-muted-strong mb-1">
+              <span>{{ m.label }}</span>
+              <span>{{ m.val }}g / {{ m.target }}g</span>
+            </div>
+            <progress class="progress {{ m.cls }} w-full h-2" value="{{ min((m.val / m.target * 100)|round, 100) }}" max="100"></progress>
+          </div>
+        {% endfor %}
+        <a href="{{ path('app_nutrition_index') }}" class="btn btn-ghost btn-xs mt-2 text-muted-strong">Modifier</a>
+      {% else %}
+        <p class="text-sm text-muted mb-4">Aucun log nutritionnel pour aujourd'hui.</p>
+        <a href="{{ path('app_nutrition_index') }}" class="btn btn-secondary btn-sm">+ Logger les macros</a>
+      {% endif %}
+    </div>
+
+  </div>
+
+  {# ── Recent sessions ───────────────────────────────────────────────────── #}
+  <div class="px-6 md:px-8 py-6">
+    <div class="flex items-center justify-between mb-4">
+      <div>
+        <div class="badge badge-neutral badge-sm mb-2">Séances</div>
+        <h3 class="font-display text-2xl">DERNIÈRES SÉANCES</h3>
+      </div>
+      <a href="{{ path('app_session_new') }}" class="btn btn-primary btn-sm font-display tracking-widest">+ NOUVELLE</a>
+    </div>
+
+    {% if recentSessions is empty %}
+      <p class="text-sm text-muted">Aucune séance enregistrée. C'est l'heure de suer ! 💪</p>
+    {% else %}
+      <div class="flex flex-col gap-3">
+        {% for session in recentSessions %}
+          <a href="{{ path('app_session_show', {id: session.id}) }}"
+             class="card bg-base-200 border border-base-300 p-4 flex flex-row items-center justify-between hover:bg-base-300 transition-colors">
+            <div>
+              <div class="font-medium text-sm">{{ session.name }}</div>
+              <div class="text-xs text-muted mt-0.5">
+                {{ session.performedAt|date('l d/m/Y')|replace({'Monday': 'Lundi', 'Tuesday': 'Mardi', 'Wednesday': 'Mercredi', 'Thursday': 'Jeudi', 'Friday': 'Vendredi', 'Saturday': 'Samedi', 'Sunday': 'Dimanche'}) }}
+                {% if session.durationMinutes %} · {{ session.durationMinutes }} min{% endif %}
+                {% if session.rpe %} · RPE {{ session.rpe }}/10{% endif %}
+              </div>
+            </div>
+            <div class="text-right">
+              <div class="font-display text-primary text-lg">{{ session.sets|length }}</div>
+              <div class="text-xs text-muted">séries</div>
+            </div>
+          </a>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </div>
+
+</div>
