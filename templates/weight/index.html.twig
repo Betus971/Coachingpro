@@ -2,17 +2,39 @@
 {% block title %}Poids — CoachPro{% endblock %}
 
 {% block body %}
-<div class="px-6 md:px-8 py-8">
 
-  <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+{#
+  Sérialisation des logs pour le controller Stimulus.
+  On passe la date en ISO (Y-m-d) pour que JS puisse la parser.
+#}
+{% set logsJson = [] %}
+{% for log in logs %}
+  {% set logsJson = logsJson|merge([{
+    date:         log.loggedOn|date('Y-m-d'),
+    weightKg:     log.weightKg,
+    fatPercent:   log.fatPercent,
+    fatKg:        log.fatKg,
+    muscleKg:     log.muscleKg,
+    boneKg:       log.boneKg,
+    waterPercent: log.waterPercent,
+    bmi:          log.bmi,
+    source:       log.source,
+  }]) %}
+{% endfor %}
+
+<div class="px-4 md:px-6 lg:px-8 py-8 space-y-6"
+     data-controller="weight-composition"
+     data-weight-composition-logs-value="{{ logsJson|json_encode }}">
+
+  {# ── HEADER ──────────────────────────────────────────────────────────────── #}
+  <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
     <div>
-      <div class="section-tag mb-3">Suivi</div>
+      <div class="text-xs tracking-widest uppercase text-primary opacity-70 mb-1">Suivi</div>
       <h1 class="font-display text-4xl md:text-5xl">HISTORIQUE POIDS</h1>
     </div>
     <div class="flex gap-3">
-      {# Import CSV Boditrax #}
       <button onclick="document.getElementById('modal-import').showModal()"
-              class="btn btn-outline btn-accent font-display tracking-widest btn-sm">
+              class="btn btn-outline btn-accent btn-sm font-display tracking-widest">
         ↑ IMPORT BODITRAX
       </button>
       <button onclick="document.getElementById('modal-weight').showModal()"
@@ -23,28 +45,104 @@
   </div>
 
   {% if logs is empty %}
-    <div class="card-coach p-12 text-center">
-      <div class="font-display text-4xl text-muted-strong mb-2">AUCUNE PESÉE</div>
-      <p class="text-sm text-muted mb-6">Enregistre ta première pesée ou importe ton historique Boditrax.</p>
+
+    <div class="card-elevated p-12 text-center">
+      <div class="font-display text-4xl opacity-20 mb-2">AUCUNE PESÉE</div>
+      <p class="text-sm opacity-40 mb-6">Enregistre ta première pesée ou importe ton historique Boditrax.</p>
       <button onclick="document.getElementById('modal-import').showModal()"
               class="btn btn-outline btn-accent btn-sm font-display tracking-widest">
         ↑ IMPORTER UN CSV BODITRAX
       </button>
     </div>
+
   {% else %}
-    <div class="card-coach overflow-x-auto">
-      <table class="table table-coachpro w-full">
+
+    {# ── KPI HEADER ───────────────────────────────────────────────────────── #}
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+
+      <div class="card-elevated p-5">
+        <div class="text-xs uppercase tracking-widest opacity-40 mb-3">Poids actuel</div>
+        <div class="font-display text-3xl text-primary" data-weight-composition-target="kpiWeight">—</div>
+        <div class="text-xs mt-1 font-semibold" data-weight-composition-target="kpiWeightDelta"></div>
+      </div>
+
+      <div class="card-elevated p-5">
+        <div class="text-xs uppercase tracking-widest opacity-40 mb-3">Masse grasse</div>
+        <div class="font-display text-3xl" style="color:#ff6b6b" data-weight-composition-target="kpiFat">—</div>
+        <div class="text-xs mt-1 font-semibold" data-weight-composition-target="kpiFatDelta"></div>
+      </div>
+
+      <div class="card-elevated p-5">
+        <div class="text-xs uppercase tracking-widest opacity-40 mb-3">Masse musculaire</div>
+        <div class="font-display text-3xl" style="color:#00c9a7" data-weight-composition-target="kpiMuscle">—</div>
+        <div class="text-xs mt-1 font-semibold" data-weight-composition-target="kpiMuscleDelta"></div>
+      </div>
+
+      <div class="card-elevated p-5">
+        <div class="text-xs uppercase tracking-widest opacity-40 mb-3">IMC</div>
+        <div class="font-display text-3xl opacity-80" data-weight-composition-target="kpiBmi">—</div>
+      </div>
+
+    </div>
+
+    {# ── VISUALISATIONS ────────────────────────────────────────────────────── #}
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+
+      {# ── Sankey composition corporelle ─────────────────────────────────── #}
+      <div class="card-elevated p-6">
+        <div class="text-xs uppercase tracking-widest opacity-40 mb-0.5">Composition corporelle</div>
+        <p class="text-xs opacity-30 mb-4">Répartition de la dernière mesure Boditrax</p>
+
+        <div class="relative" style="height:220px">
+          <canvas data-weight-composition-target="sankey"></canvas>
+          <div class="hidden absolute inset-0 flex items-center justify-center"
+               data-weight-composition-target="sankeyEmpty">
+            <p class="text-sm opacity-30 text-center">
+              Importe un CSV Boditrax pour voir<br>la composition corporelle.
+            </p>
+          </div>
+        </div>
+
+        <div class="flex flex-wrap gap-4 mt-4 justify-center">
+          {% for l in [
+            {color: '#9b6dff', label: 'Poids total'},
+            {color: '#ff6b6b', label: 'Masse grasse'},
+            {color: '#00c9a7', label: 'Masse musculaire'},
+            {color: '#9898b0', label: 'Ossature & autres'},
+          ] %}
+            <div class="flex items-center gap-1.5">
+              <span class="w-2.5 h-2.5 rounded-full shrink-0" style="background:{{ l.color }}"></span>
+              <span class="text-xs opacity-50">{{ l.label }}</span>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      {# ── Évolution temporelle ──────────────────────────────────────────── #}
+      <div class="card-elevated p-6">
+        <div class="text-xs uppercase tracking-widest opacity-40 mb-0.5">Évolution dans le temps</div>
+        <p class="text-xs opacity-30 mb-4">Poids · Masse grasse · Masse musculaire (kg)</p>
+        <div style="height:290px">
+          <canvas data-weight-composition-target="evolution"></canvas>
+        </div>
+      </div>
+
+    </div>
+
+    {# ── TABLEAU HISTORIQUE ────────────────────────────────────────────────── #}
+    <div class="card-elevated overflow-x-auto">
+      <table class="table w-full text-sm">
         <thead>
-          <tr class="border-b border-neutral">
-            <th>Date</th>
-            <th>Poids</th>
-            <th>Variation</th>
-            <th class="text-accent">Graisse %</th>
-            <th class="text-accent">Graisse kg</th>
-            <th class="text-secondary">Muscle kg</th>
-            <th class="text-muted-strong" style="opacity:1">Eau %</th>
-            <th class="text-muted-strong" style="opacity:1">IMC</th>
-            <th>Source</th>
+          <tr class="border-b border-base-300 text-xs uppercase tracking-wider">
+            <th class="opacity-40 py-4 px-4 font-medium">Date</th>
+            <th class="opacity-40 font-medium">Poids</th>
+            <th class="opacity-40 font-medium">Variation</th>
+            <th class="font-medium" style="color:#ff6b6b">Graisse %</th>
+            <th class="font-medium" style="color:#ff6b6b">Graisse kg</th>
+            <th class="font-medium" style="color:#00c9a7">Muscle kg</th>
+            <th class="opacity-40 font-medium">Eau %</th>
+            <th class="opacity-40 font-medium">IMC</th>
+            <th class="opacity-40 font-medium">Source</th>
             <th></th>
           </tr>
         </thead>
@@ -52,119 +150,19 @@
           {% for i, log in logs %}
             {% set prev = logs[i + 1] is defined ? logs[i + 1] : null %}
             {% set diff = prev ? (log.weightKg - prev.weightKg) : null %}
-            <tr class="border-b border-neutral hover:bg-base-300 transition-colors">
-              <td class="text-muted-strong whitespace-nowrap">{{ log.loggedOn|date('d/m/Y') }}</td>
+            <tr class="border-b border-base-300 hover:bg-base-300 transition-colors group">
+
+              <td class="opacity-40 whitespace-nowrap py-3 px-4 text-xs">
+                {{ log.loggedOn|date('d/m/Y') }}
+              </td>
 
               <td>
-                <span class="font-display text-2xl">{{ log.weightKg }}</span>
-                <span class="text-muted text-sm"> kg</span>
+                <span class="font-display text-xl">{{ log.weightKg }}</span>
+                <span class="opacity-30 text-xs"> kg</span>
               </td>
 
               <td>
                 {% if diff is not null %}
-                  <span class="font-display text-lg {{ diff < 0 ? 'text-secondary' : (diff > 0 ? 'text-error' : 'text-muted') }}">
+                  <span class="font-semibold text-sm {{ diff < 0 ? 'text-success' : (diff > 0 ? 'text-error' : 'opacity-30') }}">
                     {{ diff > 0 ? '+' : '' }}{{ diff|number_format(1, '.') }}
-                  </span>
-                {% else %}
-                  <span class="text-muted">—</span>
-                {% endif %}
-              </td>
-
-              <td class="text-accent">{{ log.fatPercent ? log.fatPercent ~ '%' : '—' }}</td>
-              <td class="text-accent">{{ log.fatKg ? log.fatKg ~ ' kg' : '—' }}</td>
-              <td class="text-secondary">{{ log.muscleKg ? log.muscleKg ~ ' kg' : '—' }}</td>
-              <td class="text-muted-strong">{{ log.waterPercent ? log.waterPercent ~ '%' : '—' }}</td>
-              <td class="text-muted-strong">{{ log.bmi ?? '—' }}</td>
-
-              <td>
-                {% if log.source == 'boditrax_csv' %}
-                  <span class="badge badge-accent badge-xs font-display tracking-wide">BODITRAX</span>
-                {% else %}
-                  <span class="text-muted text-xs">Manuel</span>
-                {% endif %}
-              </td>
-
-              <td>
-                <form action="{{ path('app_weight_delete', {id: log.id}) }}" method="post">
-                  <button type="submit" class="btn btn-ghost btn-xs text-muted hover:text-error"
-                          onclick="return confirm('Supprimer cette pesée ?')">✕</button>
-                </form>
-              </td>
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  {% endif %}
-</div>
-
-{# ── Modal: import CSV Boditrax ────────────────────────────────────────────── #}
-<dialog id="modal-import" class="modal">
-  <div class="modal-box bg-base-200 border border-neutral max-w-lg">
-    <h3 class="font-display text-2xl mb-1">IMPORT BODITRAX</h3>
-    <p class="text-xs text-muted mb-6">
-      Exporte tes mesures depuis l'appli ou le portail Boditrax (format CSV), puis importe-les ici.
-      Les mesures existantes pour la même date seront mises à jour.
-    </p>
-
-    {# Format attendu #}
-    <div class="bg-base-300 p-3 mb-5 text-xs text-muted font-mono leading-relaxed overflow-x-auto rounded-lg">
-      Date,Poids (kg),IMC,Graisse corporelle (%),Graisse corporelle (kg),<br>
-      Masse musculaire (kg),Masse osseuse (kg),Eau corporelle (%)
-    </div>
-
-    <form action="{{ path('app_weight_import') }}" method="post" enctype="multipart/form-data"
-          class="flex flex-col gap-4">
-      <div class="form-control">
-        <label class="label pb-1">
-          <span class="label-text text-xs tracking-widest uppercase text-muted">Fichier CSV Boditrax</span>
-        </label>
-        <input type="file" name="csv_file" accept=".csv,text/csv" required
-               class="file-input file-input-bordered bg-base-300 border-neutral w-full">
-      </div>
-      <div class="flex gap-3 mt-2">
-        <button type="submit" class="btn btn-accent flex-1 font-display tracking-widest">IMPORTER</button>
-        <button type="button" onclick="document.getElementById('modal-import').close()"
-                class="btn btn-ghost flex-1">Annuler</button>
-      </div>
-    </form>
-  </div>
-  <form method="dialog" class="modal-backdrop"><button>close</button></form>
-</dialog>
-
-{# ── Modal: add weight ─────────────────────────────────────────────────────── #}
-<dialog id="modal-weight" class="modal">
-  <div class="modal-box bg-base-200 border border-neutral max-w-sm">
-    <h3 class="font-display text-2xl mb-6">NOUVELLE PESÉE</h3>
-    <form action="{{ path('app_weight_new') }}" method="post" class="flex flex-col gap-4">
-      <div class="form-control">
-        <label class="label pb-1">
-          <span class="label-text text-xs tracking-widest uppercase text-muted">Poids (kg)</span>
-        </label>
-        <input type="number" name="weight_kg" step="0.1" min="50" max="300" placeholder="120.5"
-               class="input input-bordered bg-base-300 border-neutral focus:border-primary" required autofocus>
-      </div>
-      <div class="form-control">
-        <label class="label pb-1">
-          <span class="label-text text-xs tracking-widest uppercase text-muted">Date</span>
-        </label>
-        <input type="date" name="logged_on" value="{{ 'now'|date('Y-m-d') }}"
-               class="input input-bordered bg-base-300 border-neutral focus:border-primary">
-      </div>
-      <div class="form-control">
-        <label class="label pb-1">
-          <span class="label-text text-xs tracking-widest uppercase text-muted">Notes (optionnel)</span>
-        </label>
-        <input type="text" name="notes" placeholder="Matin à jeun…"
-               class="input input-bordered bg-base-300 border-neutral focus:border-primary">
-      </div>
-      <div class="flex gap-3 mt-2">
-        <button type="submit" class="btn btn-primary flex-1 font-display tracking-widest">ENREGISTRER</button>
-        <button type="button" onclick="document.getElementById('modal-weight').close()"
-                class="btn btn-ghost flex-1">Annuler</button>
-      </div>
-    </form>
-  </div>
-  <form method="dialog" class="modal-backdrop"><button>close</button></form>
-</dialog>
-{% endblock %}
+                  </spa

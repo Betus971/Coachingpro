@@ -29,7 +29,7 @@ use Symfony\Component\Validator\Constraints as Assert;
     operations: [
         new GetCollection(),
         new Get(security: "is_granted('VIEW', object)"),
-        new Post(security: "is_granted('ROLE_USER')"),
+        new Post(security: "is_granted('ROLE_USER')", processor: 'App\State\CurrentUserOwnershipProcessor'),
         new Patch(security: "is_granted('EDIT', object)"),
         new Delete(security: "is_granted('EDIT', object)"),
     ],

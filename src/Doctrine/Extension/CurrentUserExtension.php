@@ -11,6 +11,8 @@ use ApiPlatform\Metadata\Operation;
 use App\Entity\NutritionLog;
 use App\Entity\Program;
 use App\Entity\ProgramAssignment;
+use App\Entity\DailyActivityLog;
+use App\Entity\Exercise;
 use App\Entity\User;
 use App\Entity\WeightLog;
 use App\Entity\WorkoutSession;
@@ -40,6 +42,7 @@ final readonly class CurrentUserExtension implements QueryCollectionExtensionInt
         WeightLog::class         => 'user',
         NutritionLog::class      => 'user',
         WorkoutSession::class    => 'user',
+        DailyActivityLog::class  => 'user',
         ProgramAssignment::class => 'user',
         Program::class           => 'createdBy',
     ];
@@ -59,6 +62,9 @@ final readonly class CurrentUserExtension implements QueryCollectionExtensionInt
     private function addScopeWhere(QueryBuilder $qb, string $resourceClass): void
     {
         if (!isset(self::SCOPED_ENTITIES[$resourceClass])) {
+            if ($resourceClass === Exercise::class) {
+                $this->addExerciseScopeWhere($qb);
+            }
             return;
         }
 
@@ -83,5 +89,29 @@ final readonly class CurrentUserExtension implements QueryCollectionExtensionInt
             $qb->andWhere("$alias.$userField = :_scope_self")
                ->setParameter('_scope_self', $user->getId(), 'uuid');
         }
+    }
+
+    private function addExerciseScopeWhere(QueryBuilder $qb): void
+    {
+        $user = $this->security->getUser();
+        if (!$user instanceof User) {
+            return;
+        }
+        if ($this->security->isGranted('ROLE_ADMIN')) {
+            return;
+        }
+
+        $alias = $qb->getRootAliases()[0];
+
+        $qb->leftJoin("$alias.createdBy", '_scope_exercise_creator')
+           ->andWhere(
+               $qb->expr()->orX(
+                   "$alias.createdBy IS NULL",
+                   '_scope_exercise_creator = :_scope_self',
+                   '_scope_exercise_creator = :_scope_coach'
+               )
+           )
+           ->setParameter('_scope_self', $user->getId(), 'uuid')
+           ->setParameter('_scope_coach', $user->getCoach()?->getId() ?? $user->getId(), 'uuid');
     }
 }
