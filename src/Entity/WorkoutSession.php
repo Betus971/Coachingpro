@@ -29,7 +29,7 @@ use Symfony\Component\Validator\Constraints as Assert;
     operations: [
         new GetCollection(),
         new Get(security: "is_granted('VIEW', object)"),
-        new Post(securityPostDenormalize: "is_granted('CREATE', object)"),
+        new Post(security: "is_granted('ROLE_USER')", processor: 'App\State\CurrentUserOwnershipProcessor'),
         new Patch(security: "is_granted('EDIT', object)"),
         new Delete(security: "is_granted('EDIT', object)"),
     ],
@@ -46,7 +46,7 @@ class WorkoutSession
 
     #[ORM\ManyToOne(targetEntity: User::class)]
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
-    #[Groups(['session:read', 'session:write'])]
+    #[Groups(['session:read'])]
     private User $user;
 
     /** Référence vers le template-source (nullable, pour les séances freestyle). */

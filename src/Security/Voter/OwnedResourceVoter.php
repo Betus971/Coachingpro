@@ -7,6 +7,8 @@ namespace App\Security\Voter;
 use App\Entity\NutritionLog;
 use App\Entity\Program;
 use App\Entity\ProgramAssignment;
+use App\Entity\DailyActivityLog;
+use App\Entity\Exercise;
 use App\Entity\User;
 use App\Entity\WeightLog;
 use App\Entity\WorkoutSession;
@@ -45,8 +47,10 @@ final class OwnedResourceVoter extends Voter
         return $subject instanceof WeightLog
             || $subject instanceof NutritionLog
             || $subject instanceof WorkoutSession
+            || $subject instanceof DailyActivityLog
             || $subject instanceof ProgramAssignment
             || $subject instanceof Program
+            || $subject instanceof Exercise
             || $subject instanceof User;
     }
 
@@ -61,12 +65,23 @@ final class OwnedResourceVoter extends Voter
         }
 
         $owner = $this->resolveOwner($subject);
+        if ($subject instanceof Exercise && $owner === null) {
+            return $attribute === self::VIEW;
+        }
+
         if ($owner === null) {
             return false;
         }
 
         // Cas 1 : c'est mes propres données.
         if ($owner->getId()->equals($currentUser->getId())) {
+            return true;
+        }
+
+        // A client can view private exercises created by their coach, but cannot edit them.
+        if ($subject instanceof Exercise
+            && $attribute === self::VIEW
+            && $currentUser->getCoach()?->getId()->equals($owner->getId())) {
             return true;
         }
 
@@ -88,8 +103,10 @@ final class OwnedResourceVoter extends Voter
             $subject instanceof WeightLog,
             $subject instanceof NutritionLog,
             $subject instanceof WorkoutSession,
+            $subject instanceof DailyActivityLog,
             $subject instanceof ProgramAssignment => $subject->getUser(),
             $subject instanceof Program           => $subject->getCreatedBy(),
+            $subject instanceof Exercise          => $subject->getCreatedBy(),
             default                               => null,
         };
     }

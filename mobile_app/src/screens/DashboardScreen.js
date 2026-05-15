@@ -1,3 +1,7 @@
+/**
+ * DashboardScreen — refonte UI Samsung Health / Google Fit
+ * Dark mode · rings circulaires · cartes arrondies · typographie douce
+ */
 import React, { useCallback, useState } from 'react';
 import {
   StyleSheet,
@@ -6,25 +10,147 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
+  StatusBar,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { COLORS, SPACING, SIZES } from '../theme/tokens';
-import { ArrowRight, Scale, Zap, Utensils, Calendar } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import {
+  Zap, Dumbbell, Scale, Flame, ChevronRight, Calendar, TrendingDown,
+} from 'lucide-react-native';
 
+import { COLORS, SPACING, FONT, RADIUS, opacity } from '../theme/tokens';
 import { weightsApi } from '../api/weights';
 import { nutritionApi } from '../api/nutrition';
 import { sessionsApi } from '../api/sessions';
 import { programsApi, findTodayWorkout } from '../api/programs';
 import { ScreenLoader, ErrorBlock } from '../components/ScreenLoader';
-import { StatCard } from '../components/StatCard';
 import { useAuth } from '../context/AuthContext';
+import ActivityRing from '../components/ActivityRing';
+import MacroRingsRow from '../components/MacroRingsRow';
 
-// Targets — à terme, lire depuis user.profile.dailyTargets
+// ─── Targets (à externaliser vers user.profile à terme) ──────────────────────
 const TARGETS = { proteins: 190, carbs: 270, fats: 75, kcal: 2700 };
 const GOAL_KG = 95;
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+const formatDate = (iso) => {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return d.toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit', month: 'short' });
+};
+
+const greeting = () => {
+  const h = new Date().getHours();
+  if (h < 6)  return 'Bonne nuit';
+  if (h < 12) return 'Bonjour';
+  if (h < 18) return 'Bon après-midi';
+  return 'Bonsoir';
+};
+
+const rpeColor = (rpe) => {
+  if (!rpe) return COLORS.textMuted;
+  if (rpe <= 5) return COLORS.success;
+  if (rpe <= 7) return COLORS.carbs;  // yellow
+  return COLORS.danger;
+};
+
+// ─── Composants locaux ────────────────────────────────────────────────────────
+
+/** Barre kcal horizontale (Samsung Health style) */
+function KcalBar({ actual = 0, target = 2700 }) {
+  const progress = Math.min(actual / target, 1);
+  const pct = Math.round(progress * 100);
+  const overTarget = actual > target;
+
+  return (
+    <View style={kcalStyles.wrap}>
+      <View style={kcalStyles.header}>
+        <View style={kcalStyles.left}>
+          <Flame size={14} color={COLORS.energy} />
+          <Text style={kcalStyles.title}>Calories</Text>
+        </View>
+        <Text style={[kcalStyles.value, overTarget && { color: COLORS.danger }]}>
+          {actual} <Text style={kcalStyles.target}>/ {target} kcal</Text>
+        </Text>
+      </View>
+      <View style={kcalStyles.trackBg}>
+        <View
+          style={[
+            kcalStyles.fill,
+            {
+              width: `${pct}%`,
+              backgroundColor: overTarget ? COLORS.danger : COLORS.energy,
+            },
+          ]}
+        />
+      </View>
+      <Text style={kcalStyles.pct}>{pct}% de l'objectif journalier</Text>
+    </View>
+  );
+}
+
+const kcalStyles = StyleSheet.create({
+  wrap:   { marginTop: SPACING.sm },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: SPACING.sm },
+  left:   { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  title:  { color: COLORS.textSub, fontSize: FONT.sm },
+  value:  { color: COLORS.text, fontSize: FONT.sm, fontWeight: '700' },
+  target: { color: COLORS.textMuted, fontWeight: '400' },
+  trackBg: {
+    height: 6,
+    backgroundColor: opacity(COLORS.energy, 0.18),
+    borderRadius: RADIUS.full,
+    overflow: 'hidden',
+  },
+  fill: { height: 6, borderRadius: RADIUS.full },
+  pct:  { color: COLORS.textMuted, fontSize: FONT.xs, marginTop: 6 },
+});
+
+/** Card Section générique */
+function SectionCard({ children, style }) {
+  return <View style={[cardStyles.card, style]}>{children}</View>;
+}
+
+const cardStyles = StyleSheet.create({
+  card: {
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.lg,
+    padding: SPACING.md,
+    marginBottom: SPACING.md,
+  },
+});
+
+/** Header de section avec titre et optionnel lien "Voir tout" */
+function SectionHeader({ icon: Icon, iconColor, title, action, onAction }) {
+  return (
+    <View style={shStyles.row}>
+      <View style={shStyles.left}>
+        {Icon && <Icon size={14} color={iconColor ?? COLORS.textSub} style={shStyles.icon} />}
+        <Text style={shStyles.title}>{title}</Text>
+      </View>
+      {action && (
+        <TouchableOpacity onPress={onAction} style={shStyles.action}>
+          <Text style={shStyles.actionText}>{action}</Text>
+          <ChevronRight size={12} color={COLORS.primary} />
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+}
+
+const shStyles = StyleSheet.create({
+  row:        { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: SPACING.md },
+  left:       { flexDirection: 'row', alignItems: 'center' },
+  icon:       { marginRight: 6 },
+  title:      { color: COLORS.textSub, fontSize: FONT.xs, fontWeight: '600', letterSpacing: 0.8, textTransform: 'uppercase' },
+  action:     { flexDirection: 'row', alignItems: 'center' },
+  actionText: { color: COLORS.primary, fontSize: FONT.xs, marginRight: 2 },
+});
+
+// ─── Screen principal ─────────────────────────────────────────────────────────
 export default function DashboardScreen() {
   const { user } = useAuth();
+  const insets = useSafeAreaInsets();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -33,7 +159,6 @@ export default function DashboardScreen() {
   const load = useCallback(async () => {
     try {
       setError(null);
-      // Charge tout en parallèle pour réduire la latence
       const [recentWeights, earliestWeight, todayNutrition, recentSessions, activeAssignment] =
         await Promise.all([
           weightsApi.recent(10),
@@ -42,14 +167,7 @@ export default function DashboardScreen() {
           sessionsApi.recent(3),
           programsApi.activeAssignment().catch(() => null),
         ]);
-
-      setData({
-        recentWeights,
-        earliestWeight,
-        todayNutrition,
-        recentSessions,
-        activeAssignment,
-      });
+      setData({ recentWeights, earliestWeight, todayNutrition, recentSessions, activeAssignment });
     } catch (e) {
       setError(e);
     } finally {
@@ -58,234 +176,416 @@ export default function DashboardScreen() {
     }
   }, []);
 
-  // Recharge à chaque retour sur l'écran (utile après ajout pesée/nutrition)
-  useFocusEffect(
-    useCallback(() => {
-      load();
-    }, [load])
-  );
+  useFocusEffect(useCallback(() => { load(); }, [load]));
 
-  const onRefresh = useCallback(() => {
-    setRefreshing(true);
-    load();
-  }, [load]);
+  const onRefresh = useCallback(() => { setRefreshing(true); load(); }, [load]);
 
   if (loading && !data) return <ScreenLoader message="Chargement..." />;
-  if (error && !data) return <ErrorBlock error={error} onRetry={load} />;
+  if (error && !data)   return <ErrorBlock error={error} onRetry={load} />;
 
   const { recentWeights, earliestWeight, todayNutrition, recentSessions, activeAssignment } = data;
 
-  // Calculs
-  const lastKg = recentWeights[0] ? parseFloat(recentWeights[0].weightKg) : null;
-  const startKg = earliestWeight ? parseFloat(earliestWeight.weightKg) : lastKg;
-  const lostKg = startKg != null && lastKg != null ? startKg - lastKg : 0;
-  const totalToLose = startKg != null ? startKg - GOAL_KG : 0;
-  const progress = totalToLose > 0 ? Math.round((lostKg / totalToLose) * 100) : 0;
-  const remainingKg = lastKg != null ? lastKg - GOAL_KG : 0;
+  // ─── Calculs poids ───────────────────────────────────────────────────────
+  const lastKg      = recentWeights[0] ? parseFloat(recentWeights[0].weightKg) : null;
+  const startKg     = earliestWeight   ? parseFloat(earliestWeight.weightKg)   : lastKg;
+  const lostKg      = startKg != null && lastKg != null ? startKg - lastKg : 0;
+  const totalToLose = startKg != null ? startKg - GOAL_KG : 1;
+  const weightProgress = totalToLose > 0 ? Math.max(0, Math.min(lostKg / totalToLose, 1)) : 0;
+  const remainingKg = lastKg != null ? Math.max(0, lastKg - GOAL_KG) : 0;
 
+  // ─── Calculs nutrition ───────────────────────────────────────────────────
+  const actualMacros = todayNutrition
+    ? { proteins: todayNutrition.proteins ?? 0, carbs: todayNutrition.carbs ?? 0, fats: todayNutrition.fats ?? 0 }
+    : { proteins: 0, carbs: 0, fats: 0 };
+  const actualKcal = todayNutrition?.kcal ?? 0;
+
+  // ─── Séance du jour ──────────────────────────────────────────────────────
   const todayWorkout = findTodayWorkout(activeAssignment);
   const firstName = user?.profile?.firstName ?? 'Champion';
 
   return (
-    <ScrollView
-      style={styles.container}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.primary} />}
-    >
-      {/* Hero */}
-      <View style={styles.hero}>
-        <Text style={styles.tag}>SALUT {firstName.toUpperCase()} · OBJECTIF {GOAL_KG} KG</Text>
-        <Text style={styles.title}>
-          {startKg != null ? `${startKg.toFixed(0)} KG ` : ''}
-          <Text style={styles.highlight}>→ {GOAL_KG} KG</Text>
-        </Text>
-
-        <View style={styles.statsRow}>
-          <StatCard
-            label="POIDS ACTUEL"
-            value={lastKg != null ? lastKg.toFixed(1) : '—'}
-            suffix=" kg"
-            color={COLORS.primary}
+    <>
+      <StatusBar barStyle="light-content" backgroundColor={COLORS.background} />
+      <ScrollView
+        style={styles.root}
+        contentContainerStyle={[styles.content, { paddingTop: insets.top + SPACING.md }]}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={COLORS.primary}
+            colors={[COLORS.primary]}
           />
-          <StatCard
-            label="PERDU"
-            value={`${lostKg > 0 ? '−' : ''}${Math.abs(lostKg).toFixed(1)}`}
-            suffix=" kg"
-            color={lostKg > 0 ? COLORS.secondary : COLORS.white}
-          />
-          <StatCard
-            label="RESTANT"
-            value={remainingKg.toFixed(1)}
-            suffix=" kg"
-            color={COLORS.white}
-          />
-        </View>
-
-        {/* Progress bar */}
-        {startKg != null && (
-          <View style={styles.progressContainer}>
-            <View style={styles.progressHeader}>
-              <Text style={styles.progressText}>{startKg.toFixed(1)} kg</Text>
-              <Text style={styles.progressPercent}>{progress}% atteint</Text>
-              <Text style={styles.progressText}>{GOAL_KG} kg 🎯</Text>
-            </View>
-            <View style={styles.progressBarBg}>
-              <View style={[styles.progressBarFill, { width: `${Math.min(Math.max(progress, 0), 100)}%` }]} />
-            </View>
+        }
+      >
+        {/* ── HEADER ──────────────────────────────────────────────────────── */}
+        <View style={styles.header}>
+          <View>
+            <Text style={styles.greeting}>{greeting()},</Text>
+            <Text style={styles.name}>{firstName}</Text>
           </View>
-        )}
-      </View>
-
-      {/* Today's workout */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTag}>AUJOURD'HUI</Text>
-        {todayWorkout ? (
-          <View style={styles.card}>
-            <View style={styles.cardHeader}>
-              <View style={styles.cardTagContainer}>
-                <Zap size={14} color={COLORS.primary} />
-                <Text style={styles.cardTag}>SÉANCE PRÉVUE</Text>
-              </View>
-              <ArrowRight size={18} color={COLORS.muted} />
-            </View>
-            <Text style={styles.cardTitle}>{todayWorkout.name?.toUpperCase()}</Text>
-            <Text style={styles.cardSubtitle}>
-              {todayWorkout.exerciseTemplates?.length ?? 0} exercices
-            </Text>
-          </View>
-        ) : (
-          <View style={[styles.card, styles.cardRest]}>
-            <View style={styles.cardTagContainer}>
-              <Calendar size={14} color={COLORS.secondary} />
-              <Text style={[styles.cardTag, { color: COLORS.secondary }]}>REPOS ACTIF</Text>
-            </View>
-            <Text style={styles.cardTitle}>JOUR OFF</Text>
-            <Text style={styles.cardSubtitle}>Marche · étirements · récup'</Text>
-          </View>
-        )}
-      </View>
-
-      {/* Stats jour */}
-      <View style={styles.section}>
-        <View style={styles.row}>
-          <View style={[styles.miniCard, { marginRight: SPACING.md }]}>
-            <Scale size={20} color={COLORS.primary} />
-            <Text style={styles.miniCardValue}>
-              {lastKg != null ? `${lastKg.toFixed(1)} kg` : '—'}
-            </Text>
-            <Text style={styles.miniCardLabel}>POIDS</Text>
-          </View>
-
-          <View style={styles.miniCard}>
-            <Utensils size={20} color={COLORS.secondary} />
-            <Text style={styles.miniCardValue}>
-              {todayNutrition ? `${todayNutrition.kcal} kcal` : '— kcal'}
-            </Text>
-            <Text style={styles.miniCardLabel}>
-              DIÈTE / {TARGETS.kcal}
+          <View style={styles.dateBadge}>
+            <Calendar size={12} color={COLORS.textSub} />
+            <Text style={styles.dateText}>
+              {new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })}
             </Text>
           </View>
         </View>
-      </View>
 
-      {/* Dernières séances */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTag}>DERNIÈRES SÉANCES</Text>
-        {recentSessions.length === 0 ? (
-          <Text style={styles.empty}>Aucune séance loggée. C'est l'heure de suer 💪</Text>
-        ) : (
-          recentSessions.map((s) => (
-            <View key={s['@id'] ?? s.id} style={styles.sessionRow}>
-              <View>
-                <Text style={styles.sessionName}>{s.name}</Text>
-                <Text style={styles.sessionMeta}>
-                  {formatDate(s.performedAt)}
-                  {s.durationMinutes ? ` · ${s.durationMinutes} min` : ''}
-                  {s.rpe ? ` · RPE ${s.rpe}/10` : ''}
+        {/* ── OBJECTIF POIDS — grande ring centrale ───────────────────────── */}
+        <SectionCard style={styles.goalCard}>
+          <SectionHeader icon={TrendingDown} iconColor={COLORS.primary} title="Objectif poids" />
+
+          <View style={styles.goalBody}>
+            {/* Ring principale */}
+            <ActivityRing
+              size={140}
+              progress={weightProgress}
+              color={COLORS.primary}
+              trackColor={opacity(COLORS.primary, 0.15)}
+              strokeWidth={12}
+            >
+              <View style={styles.ringInner}>
+                <Text style={styles.ringKg}>
+                  {lastKg != null ? lastKg.toFixed(1) : '—'}
+                </Text>
+                <Text style={styles.ringUnit}>kg</Text>
+                <Text style={styles.ringPct}>
+                  {Math.round(weightProgress * 100)}%
                 </Text>
               </View>
-              <View style={styles.sessionStats}>
-                <Text style={styles.sessionSetCount}>{s.sets?.length ?? 0}</Text>
-                <Text style={styles.miniCardLabel}>séries</Text>
+            </ActivityRing>
+
+            {/* Stats à droite */}
+            <View style={styles.goalStats}>
+              <GoalStat
+                label="Départ"
+                value={startKg != null ? `${startKg.toFixed(1)} kg` : '—'}
+                color={COLORS.textSub}
+              />
+              <GoalStat
+                label="Perdu"
+                value={lostKg > 0 ? `−${lostKg.toFixed(1)} kg` : '— kg'}
+                color={COLORS.success}
+              />
+              <GoalStat
+                label="Restant"
+                value={`${remainingKg.toFixed(1)} kg`}
+                color={COLORS.primary}
+              />
+              <GoalStat
+                label="Objectif"
+                value={`${GOAL_KG} kg`}
+                color={COLORS.textMuted}
+              />
+            </View>
+          </View>
+        </SectionCard>
+
+        {/* ── SÉANCE DU JOUR ──────────────────────────────────────────────── */}
+        <SectionCard>
+          <SectionHeader icon={Dumbbell} iconColor={COLORS.activity} title="Séance du jour" />
+          {todayWorkout ? (
+            <TouchableOpacity style={styles.workoutCard} activeOpacity={0.75}>
+              <View style={[styles.workoutAccent, { backgroundColor: COLORS.activity }]} />
+              <View style={styles.workoutBody}>
+                <Text style={styles.workoutName}>{todayWorkout.name}</Text>
+                <Text style={styles.workoutSub}>
+                  {todayWorkout.exerciseTemplates?.length ?? 0} exercices prévus
+                </Text>
+              </View>
+              <View style={[styles.workoutBadge, { backgroundColor: opacity(COLORS.activity, 0.15) }]}>
+                <Zap size={18} color={COLORS.activity} />
+              </View>
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.restCard}>
+              <View style={[styles.workoutBadge, { backgroundColor: opacity(COLORS.success, 0.12) }]}>
+                <Calendar size={18} color={COLORS.success} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.restTitle}>Jour de repos</Text>
+                <Text style={styles.restSub}>Marche · Étirements · Récupération</Text>
               </View>
             </View>
-          ))
-        )}
-      </View>
-    </ScrollView>
+          )}
+        </SectionCard>
+
+        {/* ── NUTRITION ───────────────────────────────────────────────────── */}
+        <SectionCard>
+          <SectionHeader icon={Flame} iconColor={COLORS.energy} title="Nutrition du jour" />
+
+          {/* Barre kcal */}
+          <KcalBar actual={actualKcal} target={TARGETS.kcal} />
+
+          {/* Divider */}
+          <View style={styles.divider} />
+
+          {/* Rings macros */}
+          <MacroRingsRow actual={actualMacros} targets={TARGETS} />
+        </SectionCard>
+
+        {/* ── DERNIÈRES SÉANCES ───────────────────────────────────────────── */}
+        <SectionCard style={styles.lastSection}>
+          <SectionHeader icon={Scale} iconColor={COLORS.textSub} title="Dernières séances" />
+
+          {recentSessions.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyText}>Aucune séance loggée.</Text>
+              <Text style={styles.emptyHint}>C'est l'heure de suer 💪</Text>
+            </View>
+          ) : (
+            recentSessions.map((s, i) => (
+              <View
+                key={s['@id'] ?? s.id}
+                style={[styles.sessionRow, i < recentSessions.length - 1 && styles.sessionBorder]}
+              >
+                <View style={[styles.sessionDot, { backgroundColor: COLORS.activity }]} />
+                <View style={styles.sessionInfo}>
+                  <Text style={styles.sessionName}>{s.name}</Text>
+                  <Text style={styles.sessionMeta}>
+                    {formatDate(s.performedAt)}
+                    {s.durationMinutes ? ` · ${s.durationMinutes} min` : ''}
+                  </Text>
+                </View>
+                <View style={styles.sessionRight}>
+                  {s.sets?.length > 0 && (
+                    <Text style={styles.sessionSets}>{s.sets.length} séries</Text>
+                  )}
+                  {s.rpe && (
+                    <View style={[styles.rpeBadge, { backgroundColor: opacity(rpeColor(s.rpe), 0.15) }]}>
+                      <Text style={[styles.rpeText, { color: rpeColor(s.rpe) }]}>
+                        RPE {s.rpe}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              </View>
+            ))
+          )}
+        </SectionCard>
+
+        {/* Padding bas de sécurité */}
+        <View style={{ height: SPACING.xl }} />
+      </ScrollView>
+    </>
   );
 }
 
-const formatDate = (iso) => {
-  if (!iso) return '';
-  const d = new Date(iso);
-  return d.toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit', month: 'short' });
-};
+// ─── GoalStat (mini) ──────────────────────────────────────────────────────────
+function GoalStat({ label, value, color }) {
+  return (
+    <View style={gsStyles.item}>
+      <Text style={gsStyles.label}>{label}</Text>
+      <Text style={[gsStyles.value, { color }]}>{value}</Text>
+    </View>
+  );
+}
+const gsStyles = StyleSheet.create({
+  item:  { marginBottom: SPACING.md },
+  label: { color: COLORS.textMuted, fontSize: FONT.xs, marginBottom: 2 },
+  value: { fontSize: FONT.sm, fontWeight: '700' },
+});
 
+// ─── Styles globaux ───────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.black },
-  hero: {
-    padding: SPACING.lg,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-    paddingTop: SPACING.xl,
-  },
-  tag: { color: COLORS.primary, fontSize: 10, letterSpacing: 2, marginBottom: SPACING.xs },
-  title: { color: COLORS.white, fontSize: SIZES.font_xl, fontWeight: '900' },
-  highlight: { color: COLORS.primary },
-  statsRow: { flexDirection: 'row', marginTop: SPACING.lg, flexWrap: 'wrap' },
-  progressContainer: { marginTop: SPACING.lg },
-  progressHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
-  progressText: { color: COLORS.muted, fontSize: 10 },
-  progressPercent: { color: COLORS.primary, fontSize: 10, fontWeight: 'bold' },
-  progressBarBg: { height: 4, backgroundColor: COLORS.grey, width: '100%' },
-  progressBarFill: { height: 4, backgroundColor: COLORS.primary },
-  section: {
-    paddingHorizontal: SPACING.lg,
-    paddingVertical: SPACING.md,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-  },
-  sectionTag: {
-    color: COLORS.muted,
-    fontSize: 10,
-    letterSpacing: 2,
-    marginBottom: SPACING.md,
-    fontWeight: 'bold',
-  },
-  card: {
-    backgroundColor: COLORS.card,
-    padding: SPACING.lg,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  cardRest: { borderColor: COLORS.grey2 },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: SPACING.sm },
-  cardTagContainer: { flexDirection: 'row', alignItems: 'center' },
-  cardTag: { color: COLORS.primary, fontSize: 10, fontWeight: 'bold', marginLeft: 6, letterSpacing: 1 },
-  cardTitle: { color: COLORS.white, fontSize: SIZES.font_md, fontWeight: 'bold' },
-  cardSubtitle: { color: COLORS.muted, fontSize: SIZES.font_sm, marginTop: 4 },
-  row: { flexDirection: 'row' },
-  miniCard: {
+  root: {
     flex: 1,
-    backgroundColor: COLORS.card,
-    padding: SPACING.md,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    alignItems: 'center',
+    backgroundColor: COLORS.background,
   },
-  miniCardValue: { color: COLORS.white, fontSize: SIZES.font_md, fontWeight: 'bold', marginTop: SPACING.sm },
-  miniCardLabel: { color: COLORS.muted, fontSize: 10, marginTop: 2, letterSpacing: 1 },
-  empty: { color: COLORS.muted, fontSize: SIZES.font_sm, fontStyle: 'italic' },
-  sessionRow: {
+  content: {
+    paddingHorizontal: SPACING.md,
+  },
+
+  // Header
+  header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: SPACING.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.grey,
+    alignItems: 'flex-start',
+    marginBottom: SPACING.lg,
   },
-  sessionName: { color: COLORS.white, fontSize: SIZES.font_sm, fontWeight: 'bold' },
-  sessionMeta: { color: COLORS.muted, fontSize: 11, marginTop: 2 },
-  sessionStats: { alignItems: 'center' },
-  sessionSetCount: { color: COLORS.primary, fontSize: SIZES.font_lg, fontWeight: 'bold' },
+  greeting: {
+    color: COLORS.textSub,
+    fontSize: FONT.sm,
+  },
+  name: {
+    color: COLORS.text,
+    fontSize: FONT.xl,
+    fontWeight: '800',
+    letterSpacing: -0.5,
+  },
+  dateBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: COLORS.surface,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: 6,
+    borderRadius: RADIUS.full,
+  },
+  dateText: {
+    color: COLORS.textSub,
+    fontSize: FONT.xs,
+    textTransform: 'capitalize',
+  },
+
+  // Goal card
+  goalCard: {
+    paddingBottom: SPACING.lg,
+  },
+  goalBody: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  ringInner: {
+    alignItems: 'center',
+  },
+  ringKg: {
+    color: COLORS.text,
+    fontSize: FONT.xl,
+    fontWeight: '800',
+    lineHeight: FONT.xl * 1.1,
+  },
+  ringUnit: {
+    color: COLORS.textSub,
+    fontSize: FONT.xs,
+    marginTop: -2,
+  },
+  ringPct: {
+    color: COLORS.primary,
+    fontSize: FONT.xs,
+    fontWeight: '700',
+    marginTop: 4,
+  },
+  goalStats: {
+    flex: 1,
+    paddingLeft: SPACING.lg,
+  },
+
+  // Workout
+  workoutCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.surfaceHigh,
+    borderRadius: RADIUS.md,
+    overflow: 'hidden',
+  },
+  workoutAccent: {
+    width: 4,
+    alignSelf: 'stretch',
+  },
+  workoutBody: {
+    flex: 1,
+    paddingVertical: SPACING.md,
+    paddingHorizontal: SPACING.md,
+  },
+  workoutName: {
+    color: COLORS.text,
+    fontSize: FONT.md,
+    fontWeight: '700',
+  },
+  workoutSub: {
+    color: COLORS.textSub,
+    fontSize: FONT.sm,
+    marginTop: 3,
+  },
+  workoutBadge: {
+    width: 40,
+    height: 40,
+    borderRadius: RADIUS.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: SPACING.md,
+  },
+  restCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.md,
+    backgroundColor: COLORS.surfaceHigh,
+    borderRadius: RADIUS.md,
+    padding: SPACING.md,
+  },
+  restTitle: {
+    color: COLORS.text,
+    fontSize: FONT.md,
+    fontWeight: '600',
+  },
+  restSub: {
+    color: COLORS.textSub,
+    fontSize: FONT.sm,
+    marginTop: 2,
+  },
+
+  // Divider
+  divider: {
+    height: 1,
+    backgroundColor: COLORS.divider,
+    marginVertical: SPACING.md,
+  },
+
+  // Sessions
+  lastSection: {
+    marginBottom: 0,
+  },
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: SPACING.lg,
+  },
+  emptyText: {
+    color: COLORS.textSub,
+    fontSize: FONT.sm,
+  },
+  emptyHint: {
+    color: COLORS.textMuted,
+    fontSize: FONT.sm,
+    marginTop: 4,
+  },
+  sessionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: SPACING.md,
+  },
+  sessionBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.divider,
+  },
+  sessionDot: {
+    width: 8,
+    height: 8,
+    borderRadius: RADIUS.full,
+    marginRight: SPACING.md,
+  },
+  sessionInfo: {
+    flex: 1,
+  },
+  sessionName: {
+    color: COLORS.text,
+    fontSize: FONT.sm,
+    fontWeight: '600',
+  },
+  sessionMeta: {
+    color: COLORS.textMuted,
+    fontSize: FONT.xs,
+    marginTop: 2,
+    textTransform: 'capitalize',
+  },
+  sessionRight: {
+    alignItems: 'flex-end',
+    gap: 4,
+  },
+  sessionSets: {
+    color: COLORS.textSub,
+    fontSize: FONT.xs,
+  },
+  rpeBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: RADIUS.full,
+  },
+  rpeText: {
+    fontSize: FONT.xs,
+    fontWeight: '700',
+  },
 });

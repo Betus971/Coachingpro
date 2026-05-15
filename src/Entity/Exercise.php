@@ -27,8 +27,8 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ApiResource(
     operations: [
         new GetCollection(),
-        new Get(),
-        new Post(security: "is_granted('ROLE_COACH')"),
+        new Get(security: "is_granted('VIEW', object)"),
+        new Post(security: "is_granted('ROLE_COACH')", processor: 'App\State\CurrentUserOwnershipProcessor'),
         new Patch(security: "is_granted('EDIT', object)"),
     ],
     normalizationContext: ['groups' => ['exercise:read']],
