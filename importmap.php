@@ -29,4 +29,18 @@ return [
         'version' => '4.5.1',
     ],
     'chart.js/helpers' => [
-        'path' => './assets/vendor/ch
+        'path' => './assets/vendor/chart.js/helpers.js',
+    ],
+    '@kurkle/color' => [
+        'version' => '0.3.4',
+    ],
+    'internmap' => [
+        'path' => './assets/vendor/internmap/internmap.index.js',
+    ],
+    'd3-array' => [
+        'path' => './assets/vendor/d3-array/d3-array.index.js',
+    ],
+    'chartjs-chart-sankey' => [
+        'path' => './assets/vendor/chartjs-chart-sankey/chartjs-chart-sankey.index.js',
+    ],
+];
