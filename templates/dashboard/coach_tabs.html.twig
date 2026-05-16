@@ -2,43 +2,49 @@
 {% block title %}Dashboard Coach — CoachPro{% endblock %}
 
 {% block body %}
-<div class="p-6">
-  
-  <div role="tablist" class="tabs tabs-boxed mb-6 bg-base-200">
-    <input type="radio" name="coach_tabs" role="tab" class="tab font-display tracking-widest text-lg" aria-label="MES CLIENTS" checked="checked" />
-    <div role="tabpanel" class="tab-content bg-base-100 border-base-300 rounded-box py-6">
-      
-      <div class="flex justify-between items-center mb-6">
-        <h1 class="text-3xl font-bold text-primary">Vue Coach</h1>
-        <button class="btn btn-sm btn-outline btn-primary">Nouveau Client</button>
-      </div>
 
-      <div class="card bg-base-200 shadow-xl border border-base-300">
+  {# ── EN-TÊTE COACH ────────────────────────────────────────────────────────── #}
+  <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-6">
+    <div>
+      <h1 class="text-2xl font-bold">Tableau de bord Coach</h1>
+      <p class="text-base-content/50 text-sm">Gérez vos clients et suivez votre programme</p>
+    </div>
+    <button class="btn btn-primary btn-sm gap-1">
+      <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+      Nouveau Client
+    </button>
+  </div>
+
+  {# ── TABS ─────────────────────────────────────────────────────────────────── #}
+  <div role="tablist" class="tabs tabs-bordered mb-6">
+
+    <input type="radio" name="coach_tabs" role="tab" class="tab" aria-label="Mes Clients" checked="checked"/>
+    <div role="tabpanel" class="tab-content pt-6">
+      <div class="card bg-base-100 shadow-sm border border-base-200">
         <div class="card-body">
-          <h2 class="card-title mb-4">Mes Clients</h2>
-          
+          <h2 class="card-title text-base">
+            <svg class="h-4 w-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+            Mes Clients
+          </h2>
           {% if clients is empty %}
-            <p class="text-muted">Vous n'avez pas encore de clients assignés.</p>
+            <div class="text-center py-8 text-base-content/40">
+              <p class="text-sm">Vous n'avez pas encore de clients assignés.</p>
+            </div>
           {% else %}
             <div class="overflow-x-auto">
-              <table class="table">
+              <table class="table table-sm">
                 <thead>
-                  <tr>
-                    <th>Nom</th>
-                    <th>Email</th>
-                    <th>Inscrit le</th>
-                    <th>Action</th>
+                  <tr class="text-base-content/50 text-xs uppercase">
+                    <th>Nom</th><th>Email</th><th>Inscrit le</th><th></th>
                   </tr>
                 </thead>
                 <tbody>
                   {% for client in clients %}
-                    <tr class="hover:bg-base-300 transition-colors">
-                      <td class="font-medium">{{ client.firstName }} {{ client.lastName }}</td>
-                      <td class="text-muted-strong">{{ client.email }}</td>
-                      <td>{{ client.createdAt|date('d/m/Y') }}</td>
-                      <td>
-                        <button class="btn btn-xs btn-outline btn-secondary">Voir dossier</button>
-                      </td>
+                    <tr class="hover">
+                      <td class="font-bold text-sm">{{ client.firstName }} {{ client.lastName }}</td>
+                      <td class="text-sm text-base-content/60">{{ client.email }}</td>
+                      <td class="text-sm text-base-content/60">{{ client.createdAt|date('d/m/Y') }}</td>
+                      <td><button class="btn btn-ghost btn-xs">Voir dossier</button></td>
                     </tr>
                   {% endfor %}
                 </tbody>
@@ -47,17 +53,13 @@
           {% endif %}
         </div>
       </div>
-
     </div>
 
-    <input type="radio" name="coach_tabs" role="tab" class="tab font-display tracking-widest text-lg" aria-label="MON PROGRAMME" />
-    <div role="tabpanel" class="tab-content bg-base-100 border-base-300 rounded-box py-6">
-      
-      {# On inclut simplement le contenu de la vue client avec notre contexte actuel #}
+    <input type="radio" name="coach_tabs" role="tab" class="tab" aria-label="Mon Programme"/>
+    <div role="tabpanel" class="tab-content pt-6">
       {{ include('dashboard/_client_content.html.twig') }}
-
     </div>
+
   </div>
 
-</div>
 {% endblock %}
