@@ -149,7 +149,6 @@ export default class extends Controller {
           borderWidth: 0,
           nodeWidth: 16,
           nodePadding: 24,
-          labels: nodeColors,  // utilisé pour les nœuds
         }],
       },
       options: {
