@@ -1,170 +1,296 @@
-{#
-  Dashboard Client — CoachPro
-  Design : Samsung Health / Google Fit dark (thème coachpro)
-  Rings SVG pour macros, barres arrondies, cards avec accent latéral.
-#}
-
-{# ── Macro Twig : SVG ring (réutilisable dans ce template) ─────────────────── #}
-{% macro svgRing(pct, color, track, size, stroke) %}
-  {% set r = (size - stroke) / 2 %}
-  {% set circ = 2 * 3.14159 * r %}
-  {% set offset = circ * (1 - (pct / 100)) %}
-  <svg width="{{ size }}" height="{{ size }}" viewBox="0 0 {{ size }} {{ size }}">
-    <circle class="progress-ring-track"
-      cx="{{ size / 2 }}" cy="{{ size / 2 }}" r="{{ r }}"
-      stroke="{{ track }}" stroke-width="{{ stroke }}" />
-    <circle class="progress-ring-fill"
-      cx="{{ size / 2 }}" cy="{{ size / 2 }}" r="{{ r }}"
-      stroke="{{ color }}" stroke-width="{{ stroke }}"
-      stroke-dasharray="{{ circ }} {{ circ }}"
-      stroke-dashoffset="{{ offset }}"
-      style="transform-origin: {{ size / 2 }}px {{ size / 2 }}px;" />
-  </svg>
-{% endmacro %}
-
-{% import _self as m %}
-
+{# Dashboard Client — CoachPro #}
 {% set targets = {proteins: 190, carbs: 270, fats: 75, kcal: 2700} %}
 
-<div class="relative overflow-hidden hero-glow space-y-6 pb-8">
+{# ── EN-TÊTE ──────────────────────────────────────────────────────────────────── #}
+<div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-6">
+  <div>
+    <h1 class="text-2xl font-bold">Bonjour, {{ app.user.firstName|default('Coach') }} 👋</h1>
+    <p class="text-base-content/50 text-sm">{{ 'now'|date('l d MMMM Y')|replace({
+      'Monday':'Lundi','Tuesday':'Mardi','Wednesday':'Mercredi','Thursday':'Jeudi',
+      'Friday':'Vendredi','Saturday':'Samedi','Sunday':'Dimanche',
+      'January':'janvier','February':'février','March':'mars','April':'avril',
+      'May':'mai','June':'juin','July':'juillet','August':'août',
+      'September':'septembre','October':'octobre','November':'novembre','December':'décembre'
+    }) }}</p>
+  </div>
+  <div class="flex gap-2">
+    <a href="{{ path('app_session_new') }}" class="btn btn-secondary btn-sm gap-1">
+      <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+      Séance
+    </a>
+    <a href="{{ path('app_nutrition_index') }}" class="btn btn-primary btn-sm gap-1">
+      <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+      Nutrition
+    </a>
+  </div>
+</div>
 
-  {# ── HERO HEADER ─────────────────────────────────────────────────────────── #}
-  <div class="card-elevated p-6 md:p-8">
+{# ── STATS OBJECTIF POIDS ────────────────────────────────────────────────────── #}
+<div class="stats stats-vertical sm:stats-horizontal shadow bg-base-100 border border-base-200 w-full mb-6">
 
-    {# En-tête texte #}
-    <div class="text-xs tracking-widest uppercase text-primary opacity-70 mb-2">
-      Objectif personnel · 1m83
+  <div class="stat">
+    <div class="stat-figure text-primary">
+      <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
     </div>
-    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-      <div>
-        <h1 class="font-display text-4xl md:text-5xl leading-none">
-          {{ startKg }} KG <span class="text-primary">→ {{ targetKg }} KG</span>
-        </h1>
-        <p class="text-sm opacity-50 mt-2">
-          Objectif : −{{ (startKg - targetKg)|number_format(1, '.') }} kg · Programme PPL + Cardio
-        </p>
-      </div>
+    <div class="stat-title">Poids actuel</div>
+    <div class="stat-value text-primary">{{ currentKg|number_format(1, '.') }} kg</div>
+    <div class="stat-desc">Objectif : {{ targetKg }} kg</div>
+  </div>
 
-      {# Ring poids centrale #}
-      <div class="flex items-center gap-4">
-        <div class="relative flex items-center justify-center">
-          {{ m.svgRing(progress, '#9b6dff', '#222235', 120, 10) }}
-          <div class="absolute text-center">
-            <div class="font-display text-2xl text-primary leading-none">{{ currentKg|number_format(1, '.') }}</div>
-            <div class="text-xs opacity-50 mt-0.5">kg</div>
-            <div class="text-xs text-primary font-semibold mt-1">{{ progress }}%</div>
-          </div>
-        </div>
-        <div class="flex flex-col gap-3">
-          <div>
-            <div class="text-xs opacity-40 uppercase tracking-wide">Départ</div>
-            <div class="font-semibold text-sm">{{ startKg }} kg</div>
-          </div>
-          <div>
-            <div class="text-xs opacity-40 uppercase tracking-wide">Perdu</div>
-            <div class="font-semibold text-sm text-success">{% if kilosPerdus > 0 %}−{% endif %}{{ kilosPerdus|number_format(1, '.') }} kg</div>
-          </div>
-          <div>
-            <div class="text-xs opacity-40 uppercase tracking-wide">Restant</div>
-            <div class="font-semibold text-sm text-primary">{{ kilosRestants|number_format(1, '.') }} kg</div>
-          </div>
-        </div>
-      </div>
+  <div class="stat">
+    <div class="stat-figure text-success">
+      <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 13l4 4L19 7"/></svg>
     </div>
+    <div class="stat-title">Perdu</div>
+    <div class="stat-value text-success">{{ kilosPerdus|number_format(1, '.') }} kg</div>
+    <div class="stat-desc">Depuis {{ startKg }} kg</div>
+  </div>
 
-    {# Barre de progression linéaire (complément) #}
-    <div class="mt-6 max-w-lg">
-      <div class="flex justify-between text-xs opacity-40 mb-2">
-        <span>{{ startKg }} kg</span>
-        <span class="text-primary opacity-100 font-medium">{{ progress }}% atteint</span>
-        <span>{{ targetKg }} kg 🎯</span>
-      </div>
-      <div class="w-full h-2 bg-base-300 rounded-full overflow-hidden">
-        <div class="h-2 rounded-full bg-primary transition-all" style="width: {{ progress }}%"></div>
-      </div>
+  <div class="stat">
+    <div class="stat-figure text-warning">
+      <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"/></svg>
+    </div>
+    <div class="stat-title">Restant</div>
+    <div class="stat-value">{{ kilosRestants|number_format(1, '.') }} kg</div>
+    <div class="stat-desc">Programme PPL + Cardio</div>
+  </div>
+
+  <div class="stat">
+    <div class="stat-figure text-info">
+      <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+    </div>
+    <div class="stat-title">Progression</div>
+    <div class="stat-value text-info">{{ progress }}%</div>
+    <div class="stat-desc">
+      <progress class="progress progress-info w-24" value="{{ progress }}" max="100"></progress>
     </div>
   </div>
 
-  {# ── GRILLE PRINCIPALE ────────────────────────────────────────────────────── #}
-  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+</div>
 
-    {# ── SÉANCE DU JOUR ─────────────────────────────────────────────────────── #}
-    <div class="card-elevated p-6">
-      <div class="text-xs uppercase tracking-widest opacity-40 mb-4">Aujourd'hui</div>
+{# ── GRILLE PRINCIPALE ────────────────────────────────────────────────────────── #}
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+
+  {# ── SÉANCE DU JOUR ────────────────────────────────────────────────────────── #}
+  <div class="card bg-base-100 shadow-sm border border-base-200">
+    <div class="card-body">
+      <h2 class="card-title text-base">
+        <svg class="h-4 w-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        Séance prévue aujourd'hui
+      </h2>
+
       {% if todayWorkout %}
-        <div class="flex items-start gap-4 accent-bar-teal pl-3 rounded-r-xl py-1">
-          <div class="flex-1">
+        <div class="flex items-start justify-between gap-3 mt-2">
+          <div>
             <div class="flex items-center gap-2 mb-1">
-              <svg class="w-4 h-4 shrink-0" fill="none" stroke="#00c9a7" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-              <span class="text-xs font-semibold uppercase tracking-wide text-secondary">Séance prévue</span>
+              <span class="badge badge-secondary badge-sm">Séance prévue</span>
             </div>
-            <h2 class="font-display text-3xl mb-1">{{ todayWorkout.name }}</h2>
-            <p class="text-sm opacity-50">{{ todayWorkout.exerciseTemplates|length }} exercices</p>
+            <p class="text-xl font-bold">{{ todayWorkout.name }}</p>
+            <p class="text-sm text-base-content/50 mt-1">{{ todayWorkout.exerciseTemplates|length }} exercice(s)</p>
           </div>
-          <a href="{{ path('app_session_new') }}" class="btn btn-secondary btn-sm shrink-0">
-            + Logger
-          </a>
+          <a href="{{ path('app_session_new') }}" class="btn btn-secondary btn-sm shrink-0">+ Logger</a>
         </div>
-        <div class="flex flex-wrap gap-2 mt-4">
+        <div class="flex flex-wrap gap-1.5 mt-3">
           {% for et in todayWorkout.exerciseTemplates %}
-            <div class="badge badge-outline text-xs opacity-60">
+            <span class="badge badge-outline badge-sm">
               {{ et.exercise.name }}
               <span class="ml-1 text-primary font-semibold">{{ et.targetSets }}×{{ et.targetRepsMin }}{% if et.targetRepsMax != et.targetRepsMin %}–{{ et.targetRepsMax }}{% endif %}</span>
-            </div>
+            </span>
           {% endfor %}
         </div>
       {% else %}
-        <div class="flex items-center gap-4">
-          <div class="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style="background:#3dd68c22">
-            <svg class="w-5 h-5" fill="none" stroke="#3dd68c" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        <div class="flex items-center gap-3 mt-2">
+          <div class="rounded-full bg-success/10 p-3 shrink-0">
+            <svg class="w-6 h-6 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 13l4 4L19 7"/></svg>
           </div>
           <div>
-            <h2 class="font-display text-2xl text-success">Repos actif</h2>
-            <p class="text-sm opacity-50 mt-0.5">Marche · étirements · récupération</p>
+            <p class="font-bold text-success">Repos actif</p>
+            <p class="text-sm text-base-content/50">Marche · étirements · récupération</p>
           </div>
         </div>
       {% endif %}
     </div>
+  </div>
 
-    {# ── NUTRITION DU JOUR ──────────────────────────────────────────────────── #}
-    <div class="card-elevated p-6">
-      <div class="flex items-center justify-between mb-4">
-        <div class="text-xs uppercase tracking-widest opacity-40">Nutrition du jour</div>
-        <a href="{{ path('app_nutrition_index') }}" class="text-xs opacity-40 hover:opacity-80 transition-opacity">Historique →</a>
+  {# ── NUTRITION DU JOUR ─────────────────────────────────────────────────────── #}
+  <div class="card bg-base-100 shadow-sm border border-base-200">
+    <div class="card-body">
+      <div class="flex justify-between items-center">
+        <h2 class="card-title text-base">
+          <svg class="h-4 w-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+          Nutrition du jour
+        </h2>
+        <a href="{{ path('app_nutrition_index') }}" class="btn btn-ghost btn-xs">Historique</a>
       </div>
 
       {% if todayNutrition %}
-        {# Barre kcal #}
         {% set kcalPct = min(((todayNutrition.kcal / targets.kcal) * 100)|round, 100) %}
         {% set kcalOver = todayNutrition.kcal > targets.kcal %}
-        <div class="mb-5">
-          <div class="flex items-center justify-between text-sm mb-2">
-            <div class="flex items-center gap-1.5 opacity-60">
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"/></svg>
-              <span>Calories</span>
-            </div>
-            <span class="font-semibold {{ kcalOver ? 'text-error' : '' }}">
-              {{ todayNutrition.kcal }} <span class="opacity-40 font-normal">/ {{ targets.kcal }} kcal</span>
+
+        {# Calories #}
+        <div class="mt-3">
+          <div class="flex justify-between text-sm mb-1">
+            <span class="font-medium">Calories</span>
+            <span class="{{ kcalOver ? 'text-error font-bold' : 'text-base-content/60' }}">
+              {{ todayNutrition.kcal }} / {{ targets.kcal }} kcal
             </span>
           </div>
-          <div class="w-full h-2 rounded-full overflow-hidden" style="background:#4f8ef722">
-            <div class="h-2 rounded-full transition-all" style="width:{{ kcalPct }}%; background:{{ kcalOver ? '#ff6b6b' : '#4f8ef7' }}"></div>
-          </div>
-          <div class="text-xs opacity-30 mt-1.5">{{ kcalPct }}% de l'objectif journalier</div>
+          <progress class="progress {{ kcalOver ? 'progress-error' : 'progress-info' }} w-full"
+                    value="{{ kcalPct }}" max="100"></progress>
         </div>
 
-        {# Rings macros SVG #}
-        {% set macros = [
-          {key: 'proteinsG',  label: 'Protéines', target: targets.proteins, color: '#4f8ef7', track: '#4f8ef722'},
-          {key: 'carbsG',     label: 'Glucides',  target: targets.carbs,    color: '#ffc947', track: '#ffc94722'},
-          {key: 'fatsG',      label: 'Lipides',   target: targets.fats,     color: '#ff6b6b', track: '#ff6b6b22'},
-        ] %}
-        <div class="flex justify-around">
+        {# Macros #}
+        <div class="grid grid-cols-3 gap-3 mt-4">
+          {% set macros = [
+            {key: 'proteinsG', label: 'Protéines', target: targets.proteins, cls: 'progress-info'},
+            {key: 'carbsG',    label: 'Glucides',  target: targets.carbs,    cls: 'progress-warning'},
+            {key: 'fatsG',     label: 'Lipides',   target: targets.fats,     cls: 'progress-error'},
+          ] %}
           {% for mac in macros %}
             {% set val = attribute(todayNutrition, mac.key) ?? 0 %}
             {% set pct = min(((val / mac.target) * 100)|round, 100) %}
-            <div class="flex flex-col items-center gap-1.5">
-              <div class="relative flex items-center justify-center">
-                {{ m.svgRing(pct, mac.color, mac.track, 72, 7) }}
-                <div class="absolute text-center">
-                  <span class="text-xs font-bold" style="color:{{ mac.color }}">{{ pct }}%</sp
+            <div class="text-center">
+              <div class="radial-progress text-sm mx-auto {{ mac.cls }}"
+                   style="--value:{{ pct }};--size:4rem;--thickness:4px;"
+                   role="progressbar">{{ pct }}%</div>
+              <p class="text-xs font-bold mt-1">{{ val }}g</p>
+              <p class="text-xs text-base-content/40">{{ mac.label }}</p>
+            </div>
+          {% endfor %}
+        </div>
+
+        <a href="{{ path('app_nutrition_index') }}" class="btn btn-ghost btn-xs mt-3">Modifier</a>
+      {% else %}
+        <div class="text-center py-4 text-base-content/40">
+          <p class="text-sm mb-3">Aucun log nutritionnel pour aujourd'hui.</p>
+          <a href="{{ path('app_nutrition_index') }}" class="btn btn-primary btn-sm">+ Logger les macros</a>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+
+{# ── HISTORIQUE POIDS ─────────────────────────────────────────────────────────── #}
+<div class="card bg-base-100 shadow-sm border border-base-200 mb-4">
+  <div class="card-body">
+    <div class="flex justify-between items-center mb-2">
+      <h2 class="card-title text-base">
+        <svg class="h-4 w-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/></svg>
+        Historique poids
+      </h2>
+      <a href="{{ path('app_weight_index') }}" class="btn btn-ghost btn-xs">Tout voir</a>
+    </div>
+
+    {% if chart.data.datasets is not empty %}
+      <div style="height: 220px;">
+        {{ render_chart(chart, {'style': 'width:100%;height:100%'}) }}
+      </div>
+    {% else %}
+      <p class="text-sm text-base-content/40 py-4">Aucune pesée enregistrée.</p>
+    {% endif %}
+
+    <div class="flex gap-2 mt-3">
+      <input type="number" form="quick-weight-form" name="weight_kg" step="0.1" min="50" max="300"
+             placeholder="123.5 kg"
+             class="input input-sm input-bordered flex-1">
+      <input type="date" form="quick-weight-form" name="logged_on" value="{{ 'now'|date('Y-m-d') }}"
+             class="input input-sm input-bordered flex-1">
+      <form id="quick-weight-form" action="{{ path('app_weight_new') }}" method="post">
+        <button class="btn btn-primary btn-sm">+ Peser</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+{# ── DERNIÈRES SÉANCES ────────────────────────────────────────────────────────── #}
+<div class="card bg-base-100 shadow-sm border border-base-200">
+  <div class="card-body">
+    <div class="flex justify-between items-center mb-2">
+      <h2 class="card-title text-base">
+        <svg class="h-4 w-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+        Dernières séances
+      </h2>
+      <a href="{{ path('app_session_new') }}" class="btn btn-secondary btn-xs gap-1">
+        <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        Nouvelle
+      </a>
+    </div>
+
+    {% if recentSessions is empty %}
+      <div class="text-center py-6 text-base-content/40">
+        <p class="text-sm">Aucune séance enregistrée. C'est l'heure de suer ! 💪</p>
+        <a href="{{ path('app_session_new') }}" class="btn btn-secondary btn-sm mt-3">Logger une séance</a>
+      </div>
+    {% else %}
+
+      {# Mobile : cartes #}
+      <div class="md:hidden flex flex-col gap-2">
+        {% for session in recentSessions %}
+          {% set rpe = session.rpe %}
+          <a href="{{ path('app_session_show', {id: session.id}) }}"
+             class="flex justify-between items-center py-3 border-b border-base-200 last:border-0">
+            <div class="flex-1 min-w-0">
+              <p class="font-bold text-sm truncate">{{ session.name }}</p>
+              <p class="text-xs text-base-content/50 mt-0.5">
+                {{ session.performedAt|date('d/m/Y') }}
+                {% if session.durationMinutes %} · {{ session.durationMinutes }} min{% endif %}
+              </p>
+            </div>
+            <div class="flex items-center gap-2 shrink-0 ml-2">
+              {% if rpe %}
+                <span class="badge badge-sm {{ rpe <= 5 ? 'badge-success' : (rpe <= 7 ? 'badge-warning' : 'badge-error') }}">
+                  RPE {{ rpe }}
+                </span>
+              {% endif %}
+              <span class="badge badge-ghost badge-sm">{{ session.sets|length }} séries</span>
+            </div>
+          </a>
+        {% endfor %}
+      </div>
+
+      {# Desktop : tableau #}
+      <div class="hidden md:block overflow-x-auto">
+        <table class="table table-sm">
+          <thead>
+            <tr class="text-base-content/50 text-xs uppercase">
+              <th>Date</th>
+              <th>Séance</th>
+              <th>Durée</th>
+              <th>Séries</th>
+              <th>RPE</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for session in recentSessions %}
+              {% set rpe = session.rpe %}
+              <tr class="hover">
+                <td class="text-sm text-base-content/60">{{ session.performedAt|date('d/m/Y') }}</td>
+                <td>
+                  <a href="{{ path('app_session_show', {id: session.id}) }}" class="font-bold text-sm hover:text-primary transition-colors">
+                    {{ session.name }}
+                  </a>
+                </td>
+                <td class="text-sm text-base-content/60">
+                  {% if session.durationMinutes %}{{ session.durationMinutes }} min{% else %}—{% endif %}
+                </td>
+                <td>
+                  <span class="badge badge-ghost badge-sm">{{ session.sets|length }}</span>
+                </td>
+                <td>
+                  {% if rpe %}
+                    <span class="badge badge-sm {{ rpe <= 5 ? 'badge-success' : (rpe <= 7 ? 'badge-warning' : 'badge-error') }}">
+                      {{ rpe }}/10
+                    </span>
+                  {% else %}
+                    <span class="text-base-content/30">—</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% endif %}
+  </div>
+</div>
