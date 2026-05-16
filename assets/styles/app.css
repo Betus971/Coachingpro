@@ -6,6 +6,7 @@
 @source "../../assets";
 
 @plugin "daisyui";
+
 /* ── Fonts ─────────────────────────────────────────────────────────────────── */
 @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,700;1,300&display=swap');
 
@@ -33,3 +34,60 @@ body {
 /* ── Scrollbar discrète ────────────────────────────────────────────────────── */
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* ── Composants custom CoachPro ─────────────────────────────────────────────── */
+
+/* Card principale */
+.card-coach {
+    background-color: var(--color-base-100);
+    border: 1px solid var(--color-base-300);
+    border-radius: var(--radius-box, 1rem);
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.06);
+}
+
+/* Textes atténués */
+.text-muted {
+    color: color-mix(in oklch, var(--color-base-content) 45%, transparent);
+}
+.text-muted-strong {
+    color: color-mix(in oklch, var(--color-base-content) 70%, transparent);
+}
+
+/* Tag de section (ex : "Training", "Nutrition") */
+.section-tag {
+    display: inline-block;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--color-primary);
+    border: 1px solid color-mix(in oklch, var(--color-primary) 40%, transparent);
+    padding: 0.15rem 0.65rem;
+    border-radius: 9999px;
+}
+.section-tag.green {
+    color: var(--color-success);
+    border-color: color-mix(in oklch, var(--color-success) 40%, transparent);
+}
+
+/* Table CoachPro */
+.table-coachpro th {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: color-mix(in oklch, var(--color-base-content) 45%, transparent);
+    padding: 0.5rem 1rem;
+    font-weight: 500;
+    background-color: transparent;
+}
+.table-coachpro td {
+    padding: 0.625rem 1rem;
+    font-size: 0.875rem;
+}
+
+/* Barre de progression (fond) */
+.progress-bar-bg {
+    background-color: var(--color-base-300);
+    border-radius: 9999px;
+    overflow: hidden;
+}
