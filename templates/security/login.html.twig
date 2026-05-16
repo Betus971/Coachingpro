@@ -1,19 +1,15 @@
 <!DOCTYPE html>
-<html lang="fr" data-theme="coachpro">
+<html lang="fr" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Connexion — CoachPro</title>
+  <script>document.documentElement.setAttribute('data-theme', localStorage.getItem('theme') || 'dark');</script>
   {{ importmap('app') }}
-  <script>
-    (function() {
-      const saved = localStorage.getItem('coachpro-theme');
-      if (saved) document.documentElement.setAttribute('data-theme', saved);
-    })();
-  </script>
 </head>
-<body class="bg-base-100 text-base-content min-h-screen flex items-center justify-center">
-  <div class="w-full max-w-sm px-6 page-content">
+<body class="bg-base-200 text-base-content min-h-screen flex items-center justify-center">
+
+  <div class="w-full max-w-sm px-6 py-10">
 
     {# Logo #}
     <div class="text-center mb-10">
@@ -22,28 +18,14 @@
       <div class="text-xs text-muted tracking-widest mt-2 uppercase">Programme 121 → 95 kg</div>
     </div>
 
-    {# Theme toggle #}
-    <div class="flex justify-center mb-6">
-      <button onclick="toggleTheme()" class="theme-toggle" aria-label="Changer le thème" id="login-theme-toggle">
-        <svg class="w-4 h-4 theme-icon-sun" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
-        </svg>
-        <svg class="w-4 h-4 theme-icon-moon hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
-        </svg>
-      </button>
-    </div>
-
-    {# Error #}
+    {# Erreur Symfony #}
     {% if error %}
-      <div class="alert alert-error text-sm mb-4">
+      <div class="alert alert-error text-sm mb-4 shadow-sm">
         {{ error.messageKey|trans(error.messageData, 'security') }}
       </div>
     {% endif %}
 
-    {# Form #}
+    {# Formulaire #}
     <form method="post" action="{{ path('app_login') }}" class="flex flex-col gap-4">
       <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
 
@@ -52,7 +34,7 @@
           <span class="label-text text-xs tracking-widest uppercase text-muted">Email</span>
         </label>
         <input type="email" name="_username" value="{{ last_username }}" required autofocus
-               class="input input-bordered bg-base-300 border-neutral focus:border-primary focus:outline-none w-full"
+               class="input input-bordered bg-base-100 focus:border-primary focus:outline-none w-full"
                placeholder="leo@coachpro.local">
       </div>
 
@@ -61,7 +43,7 @@
           <span class="label-text text-xs tracking-widest uppercase text-muted">Mot de passe</span>
         </label>
         <input type="password" name="_password" required
-               class="input input-bordered bg-base-300 border-neutral focus:border-primary focus:outline-none w-full"
+               class="input input-bordered bg-base-100 focus:border-primary focus:outline-none w-full"
                placeholder="••••••••">
       </div>
 
@@ -81,22 +63,26 @@
       <a href="{{ path('app_register') }}" class="text-primary hover:underline">Créer un compte</a>
     </p>
 
+    {# Toggle thème discret — aligné sur localStorage('theme') comme base.html.twig #}
+    <div class="flex justify-center mt-8">
+      <button onclick="toggleLoginTheme()" class="btn btn-ghost btn-sm btn-circle opacity-40 hover:opacity-100" title="Changer de thème">
+        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/>
+        </svg>
+      </button>
+    </div>
   </div>
 
   <script>
-    function updateThemeIcons() {
-      const isDark = document.documentElement.getAttribute('data-theme') === 'coachpro';
-      document.querySelectorAll('.theme-icon-sun').forEach(el => el.classList.toggle('hidden', !isDark));
-      document.querySelectorAll('.theme-icon-moon').forEach(el => el.classList.toggle('hidden', isDark));
-    }
-    function toggleTheme() {
+    function toggleLoginTheme() {
       const html = document.documentElement;
-      const next = html.getAttribute('data-theme') === 'coachpro' ? 'coachpro-light' : 'coachpro';
+      const current = html.getAttribute('data-theme') || 'dark';
+      const next = current === 'dark' ? 'light' : 'dark';
       html.setAttribute('data-theme', next);
-      localStorage.setItem('coachpro-theme', next);
-      updateThemeIcons();
+      localStorage.setItem('theme', next);
     }
-    updateThemeIcons();
   </script>
+
 </body>
 </html>
