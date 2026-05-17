@@ -13,6 +13,9 @@
     </a>
   </div>
 
+  {# ── COACH IA ───────────────────────────────────────────────────────────── #}
+  {% include '_coach_advice.html.twig' with { advice: coachAdvice } %}
+
   {% if sessions is empty %}
     <div class="card-coach p-12 text-center">
       <div class="font-display text-3xl text-muted-strong mb-2">AUCUNE SÉANCE</div>

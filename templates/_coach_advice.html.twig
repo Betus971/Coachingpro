@@ -1,0 +1,37 @@
+{#
+  Widget "Coach IA" — à inclure avec :
+  {% include '_coach_advice.html.twig' with { advice: coachAdvice, context: 'poids' } %}
+
+  - advice  : string|null  — texte brut de Gemini (bullet points)
+  - context : string       — utilisé pour le label (ex: 'poids', 'séances', 'dashboard')
+#}
+
+{% if advice is not null %}
+<div class="card-elevated p-5 border-l-4 border-primary animate-slide-up">
+
+  {# En-tête #}
+  <div class="flex items-center gap-2 mb-3">
+    <span class="text-lg">🤖</span>
+    <div>
+      <div class="section-tag">Coach IA</div>
+    </div>
+    <span class="ml-auto text-xs text-muted">Mis à jour aujourd'hui</span>
+  </div>
+
+  {# Contenu — rendu ligne par ligne avec mise en forme des bullet points #}
+  <div class="text-sm leading-relaxed space-y-1.5 text-muted-strong">
+    {% for line in advice|split('\n') %}
+      {% set trimmed = line|trim %}
+      {% if trimmed starts with '•' or trimmed starts with '-' or trimmed starts with '*' %}
+        <div class="flex gap-2">
+          <span class="text-primary mt-0.5 shrink-0">•</span>
+          <span>{{ trimmed|replace({'•': '', '- ': '', '* ': ''})|trim }}</span>
+        </div>
+      {% elseif trimmed|length > 0 %}
+        <p class="opacity-80">{{ trimmed }}</p>
+      {% endif %}
+    {% endfor %}
+  </div>
+
+</div>
+{% endif %}
