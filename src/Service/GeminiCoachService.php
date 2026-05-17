@@ -179,6 +179,8 @@ PROMPT;
 
         $latestFat    = $logs[0]->getFatPercent();
         $latestMuscle = $logs[0]->getMuscleKg();
+        $fatLine      = $latestFat    ? "Taux de graisse actuel : {$latestFat}%"      : '';
+        $muscleLine   = $latestMuscle ? "Masse musculaire actuelle : {$latestMuscle} kg" : '';
 
         return <<<PROMPT
 Tu es un coach spécialisé en composition corporelle. Réponds en français, de façon précise et encourageante.
@@ -187,8 +189,8 @@ DONNÉES POIDS & COMPOSITION :
 {$history}
 
 Variation depuis la dernière pesée : {$delta} kg
-{$latestFat ? "Taux de graisse actuel : {$latestFat}%" : ""}
-{$latestMuscle ? "Masse musculaire actuelle : {$latestMuscle} kg" : ""}
+{$fatLine}
+{$muscleLine}
 Objectif : atteindre 95 kg
 
 Analyse en 3 points :
