@@ -7,6 +7,7 @@ namespace App\Controller;
 use App\Entity\User;
 use App\Entity\WeightLog;
 use App\Repository\WeightLogRepository;
+use App\Service\GeminiCoachService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -18,13 +19,16 @@ use Symfony\Component\Validator\Validator\ValidatorInterface;
 class WeightLogController extends AbstractController
 {
     #[Route('', name: 'index')]
-    public function index(WeightLogRepository $repo): Response
+    public function index(WeightLogRepository $repo, GeminiCoachService $gemini): Response
     {
         /** @var User $user */
         $user = $this->getUser();
         $logs = $repo->findBy(['user' => $user], ['loggedOn' => 'DESC']);
 
-        return $this->render('weight/index.html.twig', ['logs' => $logs]);
+        return $this->render('weight/index.html.twig', [
+            'logs'        => $logs,
+            'coachAdvice' => $gemini->getWeightAdvice($user),
+        ]);
     }
 
     #[Route('/new', name: 'new', methods: ['POST'])]

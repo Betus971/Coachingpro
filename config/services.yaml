@@ -19,6 +19,8 @@ services:
             $googleClientSecret: '%env(GOOGLE_CLIENT_SECRET)%'
             # Dossier d'upload pour les photos de repas (chemin absolu)
             $nutritionUploadsDir: '%kernel.project_dir%/public/uploads/nutrition'
+            # Clé API Gemini (Google AI Studio)
+            $geminiApiKey: '%env(default::GEMINI_API_KEY)%'
 
     # makes classes in src/ available to be used as services
     # this creates a service per class whose id is the fully-qualified class name

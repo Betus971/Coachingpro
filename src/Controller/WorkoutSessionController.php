@@ -11,6 +11,7 @@ use App\Entity\WorkoutSet;
 use App\Repository\ExerciseRepository;
 use App\Repository\WorkoutSessionRepository;
 use App\Repository\WorkoutTemplateRepository;
+use App\Service\GeminiCoachService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -21,13 +22,16 @@ use Symfony\Component\Routing\Attribute\Route;
 class WorkoutSessionController extends AbstractController
 {
     #[Route('', name: 'index')]
-    public function index(WorkoutSessionRepository $repo): Response
+    public function index(WorkoutSessionRepository $repo, GeminiCoachService $gemini): Response
     {
         /** @var User $user */
         $user = $this->getUser();
         $sessions = $repo->findBy(['user' => $user], ['performedAt' => 'DESC'], 20);
 
-        return $this->render('session/index.html.twig', ['sessions' => $sessions]);
+        return $this->render('session/index.html.twig', [
+            'sessions'    => $sessions,
+            'coachAdvice' => $gemini->getSessionAdvice($user),
+        ]);
     }
 
     #[Route('/new', name: 'new', methods: ['GET'])]

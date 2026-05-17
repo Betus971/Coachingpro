@@ -10,6 +10,7 @@ use App\Repository\NutritionLogRepository;
 use App\Repository\WeightLogRepository;
 use App\Repository\WorkoutSessionRepository;
 use App\Repository\ProgramAssignmentRepository;
+use App\Service\GeminiCoachService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
@@ -25,7 +26,8 @@ class DashboardController extends AbstractController
         WorkoutSessionRepository $sessionRepo,
         NutritionLogRepository $nutritionRepo,
         ProgramAssignmentRepository $assignmentRepo,
-        ChartBuilderInterface $chartBuilder
+        ChartBuilderInterface $chartBuilder,
+        GeminiCoachService $gemini,
     ): Response {
         /** @var User $user */
         $user = $this->getUser();
@@ -105,6 +107,8 @@ class DashboardController extends AbstractController
         // Si l'utilisateur est un coach, on affiche la vue à onglets, sinon la vue client normale
         $template = $this->isGranted('ROLE_COACH') ? 'dashboard/coach_tabs.html.twig' : 'dashboard/client.html.twig';
 
+        $coachAdvice = $gemini->getDashboardAdvice($user);
+
         return $this->render($template, [
             'clients'          => $clients,
             'lastWeight'       => $lastWeight,
@@ -119,6 +123,7 @@ class DashboardController extends AbstractController
             'todayNutrition'   => $todayNutrition,
             'todayWorkout'     => $todayWorkout,
             'activeAssignment' => $activeAssignment,
+            'coachAdvice'      => $coachAdvice,
         ]);
     }
 }
