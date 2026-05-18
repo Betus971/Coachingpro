@@ -31,6 +31,137 @@ class GeminiCoachService
 
     // ─── Points d'entrée publics ───────────────────────────────────────────────
 
+    /**
+     * Chat multi-turn avec contexte utilisateur complet.
+     *
+     * @param array<array{role: string, content: string}> $history  Historique précédent (role: 'user'|'model')
+     */
+    public function chat(User $user, string $message, array $history = []): string
+    {
+        if (empty($this->geminiApiKey)) {
+            return 'Désolé, le service IA n\'est pas configuré.';
+        }
+
+        $systemContext = $this->buildUserContext($user);
+
+        // Construire le tableau contents au format Gemini multi-turn
+        // On injecte le contexte utilisateur comme premier message "user" (system prompt workaround)
+        $contents = [];
+
+        // Contexte système injecté en premier échange fictif
+        $contents[] = [
+            'role'  => 'user',
+            'parts' => [['text' => $systemContext]],
+        ];
+        $contents[] = [
+            'role'  => 'model',
+            'parts' => [['text' => 'Compris. Je suis ton coach IA personnel. Je connais ton profil et je suis là pour t\'aider. Pose ta question !']],
+        ];
+
+        // Historique de conversation
+        foreach ($history as $msg) {
+            $contents[] = [
+                'role'  => $msg['role'], // 'user' ou 'model'
+                'parts' => [['text' => $msg['content']]],
+            ];
+        }
+
+        // Message actuel
+        $contents[] = [
+            'role'  => 'user',
+            'parts' => [['text' => $message]],
+        ];
+
+        try {
+            $response = $this->httpClient->request('POST', self::GEMINI_URL, [
+                'query'   => ['key' => $this->geminiApiKey],
+                'json'    => [
+                    'contents'         => $contents,
+                    'generationConfig' => [
+                        'temperature'     => 0.8,
+                        'maxOutputTokens' => 1024,
+                    ],
+                ],
+                'timeout' => 20,
+            ]);
+
+            $data = $response->toArray();
+            return $data['candidates'][0]['content']['parts'][0]['text']
+                ?? 'Je n\'ai pas pu générer de réponse, réessaie.';
+
+        } catch (\Throwable) {
+            return 'Une erreur est survenue lors de la communication avec l\'IA. Réessaie dans un moment.';
+        }
+    }
+
+    /**
+     * Construit le contexte complet de l'utilisateur pour le chat.
+     */
+    private function buildUserContext(User $user): string
+    {
+        // Poids
+        $weightLogs  = $this->weightRepo->findBy(['user' => $user], ['loggedOn' => 'DESC'], 5);
+        $startWeight = $this->weightRepo->findOneBy(['user' => $user], ['weightKg' => 'DESC']);
+        $lastWeight  = $weightLogs[0] ?? null;
+
+        $currentKg = $lastWeight  ? (float) $lastWeight->getWeightKg()  : 0.0;
+        $startKg   = $startWeight ? (float) $startWeight->getWeightKg() : 121.2;
+        $lost      = round($startKg - $currentKg, 1);
+
+        $weightHistory = empty($weightLogs)
+            ? 'Aucune pesée enregistrée.'
+            : implode(', ', array_map(
+                fn ($l) => sprintf('%s: %.1f kg', $l->getLoggedOn()->format('d/m'), $l->getWeightKg()),
+                array_reverse($weightLogs)
+            ));
+
+        // Séances récentes
+        $sessions    = $this->sessionRepo->findBy(['user' => $user], ['performedAt' => 'DESC'], 5);
+        $sessionInfo = empty($sessions)
+            ? 'Aucune séance enregistrée.'
+            : implode(', ', array_map(
+                fn ($s) => sprintf(
+                    '%s (%s%s)',
+                    $s->getName(),
+                    $s->getPerformedAt()->format('d/m'),
+                    $s->getRpe() ? ' RPE:'.$s->getRpe() : ''
+                ),
+                $sessions
+            ));
+
+        // Nutrition aujourd'hui
+        $todayNutrition = $this->nutritionRepo->findOneBy([
+            'user'     => $user,
+            'loggedOn' => new \DateTimeImmutable('today'),
+        ]);
+        $nutritionInfo = $todayNutrition
+            ? sprintf('%d kcal | P: %dg | G: %dg | L: %dg',
+                $todayNutrition->getKcal(),
+                $todayNutrition->getProteinsG(),
+                $todayNutrition->getCarbsG(),
+                $todayNutrition->getFatsG()
+            )
+            : 'Non renseignée aujourd\'hui.';
+
+        return <<<PROMPT
+Tu es un coach sportif et nutritionnel expert, personnel et bienveillant. Tu réponds en français, de manière directe et motivante. Tu adaptes tes réponses au profil de l'utilisateur ci-dessous.
+
+PROFIL UTILISATEUR :
+- Objectif : perdre du poids de {$startKg} kg → 95 kg
+- Poids actuel : {$currentKg} kg
+- Kilos perdus depuis le début : {$lost} kg
+- Historique poids récent : {$weightHistory}
+- Séances récentes : {$sessionInfo}
+- Nutrition aujourd'hui : {$nutritionInfo}
+
+Règles de réponse :
+- Sois concis (3-5 lignes max sauf si l'utilisateur demande une explication longue)
+- Utilise ses données réelles quand c'est pertinent
+- Pas d'introduction générique ("Bien sûr !", "Absolument !", etc.)
+- Si tu donnes des conseils nutritionnels ou médicaux, rappelle que tu n'es pas médecin
+PROMPT;
+    }
+
     public function getDashboardAdvice(User $user): ?string
     {
         return $this->getCached($user, 'dashboard', fn () => $this->buildDashboardPrompt($user));
