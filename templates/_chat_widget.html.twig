@@ -1,0 +1,97 @@
+{# Widget Chat IA flottant — inclus dans base.html.twig, visible sur toutes les pages #}
+{% if is_granted('IS_AUTHENTICATED_FULLY') %}
+<div
+    data-controller="chat"
+    class="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3"
+>
+
+    {# ── Panel chat ─────────────────────────────────────────────────── #}
+    <div
+        data-chat-target="panel"
+        class="hidden w-80 sm:w-96 flex flex-col bg-base-200 border border-base-300 rounded-2xl shadow-2xl overflow-hidden"
+        style="height: 480px;"
+    >
+        {# Header #}
+        <div class="flex items-center gap-3 px-4 py-3 bg-base-300 border-b border-base-300">
+            <div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-content text-sm font-bold">IA</div>
+            <div class="flex-1">
+                <div class="font-semibold text-sm text-base-content">Coach IA</div>
+                <div class="text-xs text-base-content/50">Gemini 2.0 Flash · Contexte complet</div>
+            </div>
+            <button
+                data-action="click->chat#toggle"
+                class="btn btn-ghost btn-xs btn-circle text-base-content/50 hover:text-base-content"
+                title="Fermer"
+            >✕</button>
+        </div>
+
+        {# Zone messages #}
+        <div
+            data-chat-target="messages"
+            class="flex-1 overflow-y-auto px-4 py-3 space-y-1 scroll-smooth"
+        >
+            {# Message de bienvenue (affiché avant chargement historique) #}
+            <div class="flex justify-start mb-3">
+                <div class="max-w-[80%] bg-base-300 text-base-content rounded-t-2xl rounded-br-2xl px-4 py-2 text-sm shadow-sm">
+                    <div class="leading-relaxed">
+                        Salut ! Je suis ton coach IA.<br>
+                        Je connais tes pesées, tes séances et ta nutrition.<br>
+                        <span class="text-primary font-medium">Pose-moi ta question !</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {# Indicateur "IA en train de répondre..." #}
+        <div
+            data-chat-target="typingIndicator"
+            class="hidden px-4 pb-2"
+        >
+            <div class="flex justify-start">
+                <div class="bg-base-300 rounded-2xl px-4 py-2 text-sm text-base-content/60">
+                    <span class="inline-flex gap-1 items-center">
+                        <span class="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style="animation-delay: 0ms"></span>
+                        <span class="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style="animation-delay: 150ms"></span>
+                        <span class="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style="animation-delay: 300ms"></span>
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        {# Input zone #}
+        <div class="px-3 py-3 border-t border-base-300 flex gap-2 items-end">
+            <textarea
+                data-chat-target="input"
+                data-action="keydown->chat#onKeydown"
+                class="textarea textarea-bordered textarea-sm flex-1 resize-none bg-base-100 focus:border-primary focus:outline-none text-sm leading-snug"
+                placeholder="Envoie un message… (Entrée pour envoyer)"
+                rows="2"
+                maxlength="1000"
+            ></textarea>
+            <button
+                data-chat-target="sendBtn"
+                data-action="click->chat#send"
+                class="btn btn-primary btn-sm btn-square shrink-0"
+                title="Envoyer"
+            >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    {# ── Bouton flottant ─────────────────────────────────────────────── #}
+    <button
+        data-action="click->chat#toggle"
+        class="btn btn-primary btn-circle shadow-xl w-14 h-14"
+        title="Coach IA"
+    >
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+        </svg>
+    </button>
+
+</div>
+{% endif %}
