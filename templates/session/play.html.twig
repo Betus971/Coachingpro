@@ -1,0 +1,136 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}En cours - {{ template.name }}{% endblock %}
+
+{# On désactive le padding normal du conteneur pour prendre tout l'écran mobile #}
+{% block body %}
+<div data-controller="workout-player" class="min-h-screen bg-base-200 -mt-6 -mx-4 pb-24">
+
+  {# Header collant #}
+  <div class="sticky top-0 z-50 bg-base-100/90 backdrop-blur border-b border-base-200 p-4 shadow-sm">
+    <div class="flex justify-between items-center">
+      <div>
+        <h1 class="text-xl font-bold">{{ template.name }}</h1>
+        <p class="text-sm text-base-content/50">
+          <span id="player-time">00:00</span> écoulé
+        </p>
+      </div>
+      <button class="btn btn-ghost btn-circle btn-sm" onclick="history.back()">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <form id="workout-form" action="{{ path('app_session_create') }}" method="POST" class="p-4">
+    <input type="hidden" name="name" value="{{ template.name }}">
+    <input type="hidden" name="source_template_id" value="{{ template.id }}">
+    <input type="hidden" name="performed_at" value="{{ 'now'|date('Y-m-d H:i:s') }}">
+    
+    {% set globalSetIndex = 0 %}
+    
+    {% for exerciseTemplate in template.exerciseTemplates %}
+      <div class="card bg-base-100 shadow-sm mb-4 border border-base-200">
+        <div class="card-body p-4">
+          <h2 class="card-title text-lg mb-4 text-primary">{{ exerciseTemplate.exercise.name }}</h2>
+          
+          {# En-tête des colonnes #}
+          <div class="grid grid-cols-12 gap-2 text-xs font-bold text-base-content/50 uppercase px-2 mb-2 text-center items-center">
+            <div class="col-span-2">Série</div>
+            <div class="col-span-3 text-left">Poids</div>
+            <div class="col-span-3 text-left">Reps</div>
+            <div class="col-span-4 text-right">Fait</div>
+          </div>
+          
+          {# Séries prévues #}
+          {% for i in 1..exerciseTemplate.targetSets %}
+            <div class="set-row grid grid-cols-12 gap-2 items-center mb-2 px-2 py-1 rounded-lg transition-colors" data-workout-player-target="setRow">
+              <div class="col-span-2 text-center font-bold">{{ i }}</div>
+              
+              <div class="col-span-3">
+                <input type="number" step="0.5" name="sets[{{ globalSetIndex }}][weight_kg]" placeholder="kg" class="input input-sm input-bordered w-full text-center bg-base-200/50" />
+              </div>
+              
+              <div class="col-span-3">
+                <input type="number" name="sets[{{ globalSetIndex }}][reps]" value="{{ exerciseTemplate.targetRepsMax }}" class="input input-sm input-bordered w-full text-center bg-base-200/50" />
+              </div>
+              
+              <div class="col-span-4 flex justify-end">
+                <input type="hidden" name="sets[{{ globalSetIndex }}][exercise_id]" value="{{ exerciseTemplate.exercise.id }}" disabled class="exercise-id-input" />
+                <input type="hidden" name="sets[{{ globalSetIndex }}][exercise_position]" value="{{ loop.parent.loop.index0 }}" disabled class="exercise-pos-input" />
+                <input type="hidden" name="sets[{{ globalSetIndex }}][set_number]" value="{{ i }}" disabled class="set-number-input" />
+                
+                <label class="btn btn-sm btn-circle btn-success btn-outline">
+                  <input type="checkbox" class="hidden set-checkbox" data-rest="{{ exerciseTemplate.restSeconds }}" data-action="change->workout-player#toggleSet" onchange="toggleHiddenInputs(this)" />
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                </label>
+              </div>
+            </div>
+            {% set globalSetIndex = globalSetIndex + 1 %}
+          {% endfor %}
+        </div>
+      </div>
+    {% endfor %}
+    
+    <div class="card bg-base-100 shadow-sm mb-4 border border-base-200">
+      <div class="card-body p-4">
+        <h2 class="card-title text-base mb-2">Bilan de séance</h2>
+        <div class="form-control mb-2">
+          <label class="label"><span class="label-text">Ressenti (RPE 1-10)</span></label>
+          <input type="range" name="rpe" min="1" max="10" value="7" class="range range-primary range-sm" step="1" />
+          <div class="w-full flex justify-between text-xs px-2 mt-1">
+            <span>Facile</span>
+            <span>Moyen</span>
+            <span>Max</span>
+          </div>
+        </div>
+        <div class="form-control">
+          <label class="label"><span class="label-text">Notes</span></label>
+          <textarea name="notes" class="textarea textarea-bordered textarea-sm" placeholder="Ex: Bonne énergie..."></textarea>
+        </div>
+        <input type="hidden" name="duration_minutes" id="duration_minutes" value="0" />
+      </div>
+    </div>
+  </form>
+
+  {# Timer flottant en bas de l'écran #}
+  <div data-workout-player-target="timerContainer" class="fixed bottom-20 left-4 right-4 bg-accent text-accent-content rounded-box shadow-2xl p-4 hidden flex-col items-center justify-center z-50">
+    <p class="text-sm font-bold uppercase tracking-widest opacity-80">Repos</p>
+    <div data-workout-player-target="timerDisplay" class="text-5xl font-black font-mono tracking-tighter my-1">
+      00:00
+    </div>
+    <button data-action="click->workout-player#skipTimer" class="btn btn-sm btn-ghost absolute right-2 top-1/2 -translate-y-1/2">
+      Passer
+    </button>
+  </div>
+
+  {# Bouton Terminer collé en bas #}
+  <div class="fixed bottom-0 left-0 right-0 p-4 bg-base-100 border-t border-base-200 z-40">
+    <button type="submit" form="workout-form" data-workout-player-target="finishButton" class="btn btn-outline btn-block btn-lg shadow-sm">
+      Terminer la séance
+    </button>
+  </div>
+
+</div>
+
+<script>
+  // Active les inputs cachés (exercise_id, set_number, position) seulement si la série est cochée, 
+  // pour que le backend ne crée que les séries réellement faites.
+  function toggleHiddenInputs(checkbox) {
+    const row = checkbox.closest('.set-row');
+    const inputs = row.querySelectorAll('input[type="hidden"]');
+    inputs.forEach(input => {
+      input.disabled = !checkbox.checked;
+    });
+  }
+
+  // Chrono global de la séance (pour renseigner duration_minutes)
+  let startTime = Date.now();
+  setInterval(() => {
+    let diff = Math.floor((Date.now() - startTime) / 1000);
+    let m = Math.floor(diff / 60);
+    let s = diff % 60;
+    document.getElementById('player-time').innerText = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    document.getElementById('duration_minutes').value = m;
+  }, 1000);
+</script>
+{% endblock %}

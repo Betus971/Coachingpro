@@ -14,7 +14,7 @@ export default class extends Controller {
     static values  = { open: Boolean };
 
     connect() {
-        this.loadHistory();
+        this._historyLoaded = false;
     }
 
     // ─── Toggle panel ─────────────────────────────────────────────────────────
@@ -23,6 +23,11 @@ export default class extends Controller {
         this.openValue = !this.openValue;
         this.panelTarget.classList.toggle('hidden', !this.openValue);
         if (this.openValue) {
+            // Lazy-load : fetch l'historique uniquement à la première ouverture
+            if (!this._historyLoaded) {
+                this.loadHistory();
+                this._historyLoaded = true;
+            }
             this.inputTarget.focus();
             this.scrollToBottom();
         }
@@ -57,11 +62,15 @@ export default class extends Controller {
         this.typingIndicatorTarget.classList.remove('hidden');
         this.scrollToBottom();
 
+        const controller = new AbortController();
+        const timeoutId  = setTimeout(() => controller.abort(), 25000);
+
         try {
             const res = await fetch('/chat/send', {
                 method:  'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body:    JSON.stringify({ message }),
+                signal:  controller.signal,
             });
 
             const data = await res.json();
@@ -72,9 +81,14 @@ export default class extends Controller {
             } else {
                 this.appendMessage('model', data.content, data.createdAt);
             }
-        } catch (_) {
+        } catch (err) {
             this.typingIndicatorTarget.classList.add('hidden');
-            this.appendMessage('model', '⚠️ Erreur réseau, réessaie.', now);
+            const msg = err.name === 'AbortError'
+                ? '⚠️ L\'IA met trop de temps à répondre, réessaie.'
+                : '⚠️ Erreur réseau, réessaie.';
+            this.appendMessage('model', msg, now);
+        } finally {
+            clearTimeout(timeoutId);
         }
 
         this.sendBtnTarget.disabled = false;
