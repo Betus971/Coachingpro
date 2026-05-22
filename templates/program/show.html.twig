@@ -1,120 +1,188 @@
 {% extends 'base.html.twig' %}
-{% block title %}Programme — CoachPro{% endblock %}
+{% block title %}Mon Programme — CoachPro{% endblock %}
 
 {% block body %}
-<div class="px-6 md:px-8 py-8">
+<div class="px-4 md:px-8 py-8 max-w-6xl mx-auto space-y-10">
 
-  <div class="section-tag mb-3">Programme</div>
-  <h1 class="font-display text-4xl md:text-5xl mb-2">
-    {% if assignment %}{{ assignment.program.name }}{% else %}AUCUN PROGRAMME ACTIF{% endif %}
-  </h1>
-
-  {% if assignment %}
-    <p class="text-muted text-sm mb-8">
-      Démarré le {{ assignment.startDate|date('d/m/Y') }}
-      {% if assignment.program.durationWeeks %}
-        · {{ assignment.program.durationWeeks }} semaines (~{{ (assignment.program.durationWeeks / 4.33)|round }} mois)
-      {% endif %}
-    </p>
-
-    {% if assignment.program.description %}
-      <div class="card-coach p-5 mb-8 text-sm text-muted-strong border-l-2 border-primary max-w-2xl">
-        {{ assignment.program.description }}
-      </div>
-    {% endif %}
-
-    {# Jours de la semaine #}
-    <div class="flex flex-col gap-4">
-      {% set restDays = [2, 4, 7] %}
-
-      {% set templatesIndexed = {} %}
-      {% for template in assignment.program.workoutTemplates %}
-        {% if template.dayOfWeek %}
-          {% set templatesIndexed = templatesIndexed|merge({(template.dayOfWeek): template}) %}
-        {% endif %}
-      {% endfor %}
-
-      {% for dayNum, dayName in dayNames %}
-        {% set template = templatesIndexed[dayNum] is defined ? templatesIndexed[dayNum] : null %}
-        {% set isToday = 'now'|date('N') == dayNum %}
-
-        <div class="card-coach overflow-hidden border-l-4 {{ template and 'cardio' in template.name|lower ? 'border-accent' : (template ? 'border-primary' : 'border-neutral') }} {{ isToday ? 'ring-1 ring-primary/30' : '' }}">
-          <div class="px-5 py-4 flex items-center justify-between">
-            <div class="flex items-center gap-4">
-              <span class="font-display text-2xl {{ isToday ? 'text-primary' : '' }}">{{ dayName }}</span>
-              {% if isToday %}
-                <span class="badge badge-primary badge-xs font-display tracking-widest">AUJOURD'HUI</span>
-              {% endif %}
-            </div>
-            <div class="text-xs tracking-widest uppercase font-medium
-              {{ template ? (('cardio' in template.name|lower) ? 'text-accent' : 'text-primary') : 'text-muted' }}">
-              {% if template %}
-                {{ template.name|split('—')|last|trim }}
-              {% else %}
-                REPOS
-              {% endif %}
-            </div>
+  {# Hero Banner #}
+  <div class="hero rounded-3xl overflow-hidden shadow-2xl relative bg-base-200 border border-base-300">
+    <div class="hero-overlay bg-gradient-to-br from-base-300/90 to-base-100/40"></div>
+    <div class="hero-content text-center py-16 w-full flex-col relative z-10">
+      <div class="badge badge-primary badge-outline font-display tracking-widest uppercase mb-4">Programme Actif</div>
+      <h1 class="text-5xl md:text-6xl font-display font-bold text-base-content drop-shadow-sm">
+        {% if assignment %}{{ assignment.program.name }}{% else %}AUCUN PROGRAMME{% endif %}
+      </h1>
+      {% if assignment %}
+        <p class="py-6 max-w-2xl text-lg text-base-content/80">
+          {{ assignment.program.description|default("Suit ton programme à la lettre pour atteindre tes objectifs de transformation.") }}
+        </p>
+        <div class="flex flex-wrap justify-center gap-4">
+          <div class="stat bg-base-100/50 backdrop-blur rounded-2xl w-auto border border-base-200 shadow-sm">
+            <div class="stat-title text-xs font-bold tracking-widest uppercase text-muted">Démarré le</div>
+            <div class="stat-value text-xl font-display text-primary">{{ assignment.startDate|date('d/m/Y') }}</div>
           </div>
-
-          {% if template %}
-            <div class="px-5 pb-4">
-              <p class="text-xs text-muted italic mb-3">
-                {% if 'push' in template.name|lower %}Séance force + hypertrophie · 60–70 min
-                {% elseif 'pull' in template.name|lower %}Séance force + hypertrophie · 60–70 min
-                {% elseif 'leg' in template.name|lower or 'cuiss' in template.name|lower %}Séance force + hypertrophie · 60–70 min
-                {% else %}Cardio longue durée · 45–60 min{% endif %}
-              </p>
-              <div class="flex flex-col gap-1">
-                {% for et in template.exerciseTemplates %}
-                  <div class="flex justify-between items-center py-1.5 border-b border-neutral/50 last:border-0 text-sm">
-                    <span class="text-base-content/80">{{ et.exercise.name }}</span>
-                    <span class="font-display text-base {{ 'cardio' in et.exercise.muscleGroup ? 'text-accent' : 'text-primary' }}">
-                      {{ et.targetSets }}×{{ et.targetRepsMin }}{% if et.targetRepsMax != et.targetRepsMin %}–{{ et.targetRepsMax }}{% endif %}
-                    </span>
-                  </div>
-                {% endfor %}
-              </div>
-              {% if isToday %}
-                <div class="mt-4">
-                  <a href="{{ path('app_session_new') }}?template={{ template.id }}"
-                     class="btn btn-primary btn-sm font-display tracking-widest">
-                    ▶ COMMENCER CETTE SÉANCE
-                  </a>
-                </div>
-              {% endif %}
-            </div>
-          {% else %}
-            <div class="px-5 pb-4 text-sm text-muted">
-              Marche 30–45 min · étirements · récupération
+          {% if assignment.program.durationWeeks %}
+            <div class="stat bg-base-100/50 backdrop-blur rounded-2xl w-auto border border-base-200 shadow-sm">
+              <div class="stat-title text-xs font-bold tracking-widest uppercase text-muted">Durée</div>
+              <div class="stat-value text-xl font-display text-primary">{{ assignment.program.durationWeeks }} SEM.</div>
             </div>
           {% endif %}
         </div>
-      {% endfor %}
+      {% endif %}
     </div>
+    
+    {# Décoration visuelle #}
+    <div class="absolute -top-24 -right-24 w-64 h-64 bg-primary/20 rounded-full blur-3xl pointer-events-none"></div>
+    <div class="absolute -bottom-24 -left-24 w-64 h-64 bg-accent/20 rounded-full blur-3xl pointer-events-none"></div>
+  </div>
 
-    {# Jalons progression #}
-    <div class="mt-10">
-      <div class="section-tag mb-4">Objectifs</div>
-      <h2 class="font-display text-3xl mb-4">JALONS</h2>
-      <div class="card-coach divide-y divide-neutral">
-        {% for milestone in [
-          {label: 'Départ', weight: '121.2 kg', cls: ''},
-          {label: 'Mois 2', weight: '~113–115 kg', cls: 'text-secondary'},
-          {label: 'Mois 4', weight: '~108–110 kg', cls: 'text-secondary'},
-          {label: 'Mois 6', weight: '~103–105 kg', cls: 'text-secondary'},
-          {label: 'Mois 9 🎯', weight: '~95–97 kg', cls: 'text-primary'},
-        ] %}
-          <div class="flex justify-between items-center px-5 py-3 text-sm">
-            <span class="text-muted-strong">{{ milestone.label }}</span>
-            <span class="{{ milestone.cls }} font-medium">{{ milestone.weight }}</span>
-          </div>
+  {% if assignment %}
+    
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      
+      {# Semaine / Jours (2/3 de l'espace) #}
+      <div class="lg:col-span-2 space-y-6">
+        <div class="flex items-center justify-between mb-2">
+          <h2 class="text-3xl font-display flex items-center gap-3">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-primary" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 15s1-1 4-1s5 2 8 2s4-1 4-1V3s-1 1-4 1s-5-2-8-2s-4 1-4 1zm0 0v7"/></svg>
+            Ta Semaine Type
+          </h2>
+        </div>
+
+        {% set templatesIndexed = {} %}
+        {% for template in assignment.program.workoutTemplates %}
+          {% if template.dayOfWeek %}
+            {% set templatesIndexed = templatesIndexed|merge({(template.dayOfWeek): template}) %}
+          {% endif %}
         {% endfor %}
+
+        <div class="flex flex-col gap-4 w-full">
+          {% for dayNum, dayName in dayNames %}
+            {% set template = templatesIndexed[dayNum] is defined ? templatesIndexed[dayNum] : null %}
+            {% set isToday = 'now'|date('N') == dayNum %}
+            
+            <div class="collapse collapse-arrow bg-base-100 shadow-sm rounded-2xl border border-base-200 {{ isToday ? 'ring-2 ring-primary ring-offset-2 ring-offset-base-100' : '' }}">
+              <input type="radio" name="program-accordion" {{ isToday ? 'checked="checked"' : '' }} /> 
+              <div class="collapse-title text-xl font-medium flex items-center justify-between py-4 px-6">
+                <div class="flex items-center gap-4">
+                  <span class="font-display {{ isToday ? 'text-primary text-2xl' : 'text-base-content/70' }}">{{ dayName }}</span>
+                  {% if isToday %}
+                    <span class="badge badge-primary badge-sm font-bold tracking-wider hidden sm:inline-flex">AUJOURD'HUI</span>
+                  {% endif %}
+                </div>
+                <div class="text-sm font-bold tracking-widest uppercase {{ template ? (('cardio' in template.name|lower) ? 'text-accent' : 'text-primary') : 'text-muted' }}">
+                  {% if template %}
+                    {{ template.name|split('—')|last|trim }}
+                  {% else %}
+                    REPOS
+                  {% endif %}
+                </div>
+              </div>
+              
+              <div class="collapse-content px-6 pb-6">
+                {% if template %}
+                  <div class="bg-base-200/50 p-5 rounded-xl border border-base-200 shadow-inner">
+                    <p class="text-sm text-base-content/60 italic mb-4 flex items-center gap-2">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24"><path fill="currentColor" d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2M12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8s8 3.58 8 8s-3.58 8-8 8m.5-13H11v6l5.25 3.15l.75-1.23l-4.5-2.67z"/></svg>
+                      {% if 'push' in template.name|lower %}Séance force + hypertrophie · 60–70 min
+                      {% elseif 'pull' in template.name|lower %}Séance force + hypertrophie · 60–70 min
+                      {% elseif 'leg' in template.name|lower or 'cuiss' in template.name|lower %}Séance force + hypertrophie · 60–70 min
+                      {% else %}Cardio longue durée · 45–60 min{% endif %}
+                    </p>
+                    
+                    <ul class="space-y-2">
+                      {% for et in template.exerciseTemplates %}
+                        <li class="flex justify-between items-center p-3 bg-base-100 rounded-lg shadow-sm border border-base-200">
+                          <span class="font-medium text-base-content">{{ et.exercise.name }}</span>
+                          <span class="badge badge-ghost font-display font-bold {{ 'cardio' in et.exercise.muscleGroup ? 'text-accent' : 'text-primary' }}">
+                            {{ et.targetSets }} × {{ et.targetRepsMin }}{% if et.targetRepsMax != et.targetRepsMin %}–{{ et.targetRepsMax }}{% endif %}
+                          </span>
+                        </li>
+                      {% endfor %}
+                    </ul>
+                    
+                    {% if isToday %}
+                      <div class="mt-6 flex justify-end">
+                        <a href="{{ path('app_session_play', {id: template.id}) }}"
+                           class="btn btn-primary font-display tracking-widest shadow-lg shadow-primary/20 group">
+                          Démarrer la séance
+                          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-1 group-hover:translate-x-1 transition-transform" viewBox="0 0 24 24"><path fill="currentColor" d="M8 5v14l11-7z"/></svg>
+                        </a>
+                      </div>
+                    {% endif %}
+                  </div>
+                {% else %}
+                  <div class="bg-base-200/30 p-6 rounded-xl border border-base-200 text-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mx-auto text-base-content/30 mb-3" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 19a2 2 0 1 0 4 0a2 2 0 0 0-4 0m12 0a2 2 0 1 0 4 0a2 2 0 0 0-4 0M12 11l-3 4h8l-3 4M5 12h14"/></svg>
+                    <h3 class="font-display text-lg mb-1 text-base-content/80">Récupération active</h3>
+                    <p class="text-sm text-base-content/60">Marche de 30 à 45 minutes, étirements légers et hydratation.</p>
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+          {% endfor %}
+        </div>
       </div>
+
+      {# Jalons (1/3 de l'espace) #}
+      <div class="space-y-6">
+        <div class="flex items-center justify-between">
+          <h2 class="text-3xl font-display flex items-center gap-3">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-accent" viewBox="0 0 24 24"><path fill="currentColor" d="M13.17 22A9 9 0 0 1 2 13h2a7 7 0 0 0 7 7v-1.6c-2.4-.4-4.2-2.5-4.2-5c0-2.8 2.2-5 5-5s5 2.2 5 5c0 2.5-1.8 4.6-4.2 5zm-3.6-7h6.8c-.3 1.2-1.4 2-2.6 2h-1.6c-1.2 0-2.3-.8-2.6-2M12 13c1.7 0 3-1.3 3-3V6c0-1.7-1.3-3-3-3S9 4.3 9 6v4c0 1.7 1.3 3 3 3m10 0v-2h-2v-2h-2v2h-2v2h2v2h2v-2z"/></svg>
+            Jalons
+          </h2>
+          <div class="badge badge-primary badge-outline font-bold shadow-sm whitespace-nowrap">
+            ACTUEL : {{ currentKg }} kg
+          </div>
+        </div>
+        
+        <div class="card bg-base-100 shadow-xl border border-base-200">
+          <div class="card-body">
+            
+            <ul class="steps steps-vertical w-full font-display">
+              <li class="step step-primary text-base-content/70">
+                <div class="text-left ml-2">
+                  <div class="text-xs uppercase tracking-widest font-bold text-muted">Départ</div>
+                  <div class="text-xl font-bold">{{ startKg }} kg</div>
+                </div>
+              </li>
+              <li class="step step-primary text-base-content/70">
+                <div class="text-left ml-2">
+                  <div class="text-xs uppercase tracking-widest font-bold text-muted">Mois 2</div>
+                  <div class="text-xl font-bold">~{{ (startKg - 7)|round }} kg</div>
+                </div>
+              </li>
+              <li class="step text-base-content/40">
+                <div class="text-left ml-2">
+                  <div class="text-xs uppercase tracking-widest font-bold text-muted">Mois 4</div>
+                  <div class="text-xl font-bold">~{{ (startKg - 13)|round }} kg</div>
+                </div>
+              </li>
+              <li class="step text-base-content/40">
+                <div class="text-left ml-2">
+                  <div class="text-xs uppercase tracking-widest font-bold text-muted">Mois 6</div>
+                  <div class="text-xl font-bold">~{{ (startKg - 18)|round }} kg</div>
+                </div>
+              </li>
+              <li class="step text-base-content/40" data-content="🎯">
+                <div class="text-left ml-2">
+                  <div class="text-xs uppercase tracking-widest font-bold text-primary">Objectif Final</div>
+                  <div class="text-xl font-bold text-primary">95 kg</div>
+                </div>
+              </li>
+            </ul>
+
+          </div>
+        </div>
+      </div>
+      
     </div>
 
   {% else %}
-    <div class="card-coach p-12 text-center mt-8">
-      <div class="font-display text-3xl text-muted">AUCUN PROGRAMME ASSIGNÉ</div>
+    <div class="card bg-base-200 p-16 text-center shadow-inner border border-base-300 rounded-3xl mt-8">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-20 w-20 mx-auto text-base-content/20 mb-6" viewBox="0 0 24 24"><path fill="currentColor" d="M19 3H5c-1.11 0-2 .89-2 2v14c0 1.11.89 2 2 2h14c1.11 0 2-.89 2-2V5c0-1.11-.89-2-2-2m-7 9h-2V7h-2v5H6v-2H4v2c0 2.21 1.79 4 4 4h2v2h2v-2h2c2.21 0 4-1.79 4-4v-2h-2v2h-2z"/></svg>
+      <div class="font-display text-4xl text-base-content/50 mb-2">AUCUN PROGRAMME ASSIGNÉ</div>
+      <p class="text-base-content/50">Contacte ton coach pour qu'il te crée ton premier programme d'entraînement.</p>
     </div>
   {% endif %}
 

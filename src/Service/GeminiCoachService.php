@@ -85,11 +85,17 @@ class GeminiCoachService
                 'timeout' => 20,
             ]);
 
+            $statusCode = $response->getStatusCode();
+            if ($statusCode === 429) {
+                return 'Mon cerveau IA est en pause (quota Google atteint). Il faut lier un compte de facturation à ta clé API Google AI Studio pour m\'utiliser en Europe !';
+            }
+
             $data = $response->toArray();
             return $data['candidates'][0]['content']['parts'][0]['text']
                 ?? 'Je n\'ai pas pu générer de réponse, réessaie.';
 
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log('Gemini Chat Error: ' . $e->getMessage());
             return 'Une erreur est survenue lors de la communication avec l\'IA. Réessaie dans un moment.';
         }
     }
@@ -101,7 +107,7 @@ class GeminiCoachService
     {
         // Poids
         $weightLogs  = $this->weightRepo->findBy(['user' => $user], ['loggedOn' => 'DESC'], 5);
-        $startWeight = $this->weightRepo->findOneBy(['user' => $user], ['weightKg' => 'DESC']);
+        $startWeight = $this->weightRepo->findOneBy(['user' => $user], ['loggedOn' => 'ASC']);
         $lastWeight  = $weightLogs[0] ?? null;
 
         $currentKg = $lastWeight  ? (float) $lastWeight->getWeightKg()  : 0.0;
@@ -223,6 +229,10 @@ PROMPT;
                 'timeout' => 15,
             ]);
 
+            if ($response->getStatusCode() === 429) {
+                return null; // Ignore silently for dashboard/widgets if quota is exceeded
+            }
+
             $data = $response->toArray();
             return $data['candidates'][0]['content']['parts'][0]['text'] ?? null;
 
@@ -247,7 +257,7 @@ PROMPT;
         }
 
         $currentWeight = (float) $logs[0]->getWeightKg();
-        $startWeight   = $this->weightRepo->findOneBy(['user' => $user], ['weightKg' => 'DESC']);
+        $startWeight   = $this->weightRepo->findOneBy(['user' => $user], ['loggedOn' => 'ASC']);
         $startKg       = $startWeight ? (float) $startWeight->getWeightKg() : 121.2;
         $lost          = round($startKg - $currentWeight, 1);
 

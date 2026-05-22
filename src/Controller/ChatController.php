@@ -53,7 +53,10 @@ class ChatController extends AbstractController
         /** @var User $user */
         $user = $this->getUser();
 
-        $data    = json_decode($request->getContent(), true);
+        $data = json_decode($request->getContent(), true);
+        if (!is_array($data)) {
+            return $this->json(['error' => 'Corps JSON invalide'], Response::HTTP_BAD_REQUEST);
+        }
         $message = trim($data['message'] ?? '');
 
         if ($message === '') {

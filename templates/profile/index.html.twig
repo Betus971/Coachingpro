@@ -2,63 +2,190 @@
 {% block title %}Mon Profil — CoachPro{% endblock %}
 
 {% block body %}
-<div class="max-w-xl mx-auto">
-    <div class="mb-6">
-        <h1 class="text-3xl font-display text-primary">Mon Profil</h1>
-        <p class="text-muted text-sm mt-1">Gérez vos informations personnelles.</p>
-    </div>
+<div class="px-4 md:px-8 py-8 max-w-4xl mx-auto space-y-10">
 
-    <div class="card bg-base-200 shadow-xl border border-base-300">
-        <div class="card-body">
-            {{ form_start(form, {'attr': {'class': 'space-y-4'}}) }}
-            
-                <div class="form-control w-full mb-4">
-                    {{ form_label(form.email, null, {'label_attr': {'class': 'label font-medium'}}) }}
-                    {{ form_widget(form.email) }}
-                    {{ form_errors(form.email) }}
+    {# En-tête #}
+    <div class="flex items-center gap-4 mb-8">
+        <div class="avatar placeholder">
+            <div class="bg-primary text-primary-content rounded-full w-16 shadow-lg font-display text-2xl">
+                <span>{{ app.user.firstName|first|upper }}{{ app.user.lastName|first|upper }}</span>
+            </div>
+        </div>
+        <div>
+            <h1 class="text-3xl font-display text-base-content">{{ app.user.firstName }} {{ app.user.lastName }}</h1>
+            <div class="flex items-center gap-2 mt-1">
+                <div class="badge badge-outline font-bold tracking-widest text-xs">
+                    {{ app.user.roles|join(', ') }}
                 </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div class="form-control w-full">
-                        {{ form_label(form.firstName, null, {'label_attr': {'class': 'label font-medium'}}) }}
-                        {{ form_widget(form.firstName) }}
-                        {{ form_errors(form.firstName) }}
+                {% if app.user.currentStreak > 0 %}
+                    <div class="badge badge-error gap-1 font-bold shadow-sm">
+                        🔥 {{ app.user.currentStreak }} Jours
                     </div>
-                    
-                    <div class="form-control w-full">
-                        {{ form_label(form.lastName, null, {'label_attr': {'class': 'label font-medium'}}) }}
-                        {{ form_widget(form.lastName) }}
-                        {{ form_errors(form.lastName) }}
-                    </div>
-                </div>
-
-                <div class="form-control w-full mt-4">
-                    {{ form_label(form.heightCm, null, {'label_attr': {'class': 'label font-medium'}}) }}
-                    {{ form_widget(form.heightCm) }}
-                    {{ form_errors(form.heightCm) }}
-                </div>
-
-                <div class="divider">Sécurité</div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div class="form-control w-full">
-                        {{ form_label(form.plainPassword.first, null, {'label_attr': {'class': 'label font-medium text-warning'}}) }}
-                        {{ form_widget(form.plainPassword.first) }}
-                        {{ form_errors(form.plainPassword.first) }}
-                    </div>
-                    <div class="form-control w-full">
-                        {{ form_label(form.plainPassword.second, null, {'label_attr': {'class': 'label font-medium text-warning'}}) }}
-                        {{ form_widget(form.plainPassword.second) }}
-                        {{ form_errors(form.plainPassword.second) }}
-                    </div>
-                </div>
-
-                <div class="card-actions justify-end mt-6">
-                    <button type="submit" class="btn btn-primary">Enregistrer les modifications</button>
-                </div>
-                
-            {{ form_end(form) }}
+                {% endif %}
+            </div>
         </div>
     </div>
+
+    {# Flashes #}
+    {% for label, messages in app.flashes %}
+        {% for message in messages %}
+            <div class="alert alert-{{ label == 'error' ? 'error' : 'success' }} shadow-sm mb-6">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endfor %}
+
+    {# Système d'onglets (Tabs) avec DaisyUI #}
+    <div role="tablist" class="tabs tabs-lifted tabs-lg font-display tracking-wide mb-8">
+        
+        {# Onglet Infos #}
+        <input type="radio" name="profile_tabs" role="tab" class="tab [--tab-bg:var(--color-base-100)]" aria-label="Informations" checked="checked" />
+        <div role="tabpanel" class="tab-content bg-base-100 border-base-300 rounded-box p-6 shadow-sm">
+            <h2 class="text-xl font-display mb-4 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary" viewBox="0 0 24 24"><path fill="currentColor" d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4s-4 1.79-4 4s1.79 4 4 4m0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4"/></svg>
+                Informations Personnelles
+            </h2>
+            
+            {{ form_start(profileForm, {'attr': {'class': 'space-y-4 max-w-md'}}) }}
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="form-control">
+                        {{ form_label(profileForm.firstName, null, {'label_attr': {'class': 'label-text font-bold text-muted uppercase text-xs'}}) }}
+                        {{ form_widget(profileForm.firstName) }}
+                        {{ form_errors(profileForm.firstName) }}
+                    </div>
+                    <div class="form-control">
+                        {{ form_label(profileForm.lastName, null, {'label_attr': {'class': 'label-text font-bold text-muted uppercase text-xs'}}) }}
+                        {{ form_widget(profileForm.lastName) }}
+                        {{ form_errors(profileForm.lastName) }}
+                    </div>
+                </div>
+                <div class="form-control">
+                    {{ form_label(profileForm.email, null, {'label_attr': {'class': 'label-text font-bold text-muted uppercase text-xs'}}) }}
+                    {{ form_widget(profileForm.email) }}
+                    {{ form_errors(profileForm.email) }}
+                </div>
+                <button type="submit" class="btn btn-primary font-display mt-4 w-full">Enregistrer les modifications</button>
+            {{ form_end(profileForm) }}
+        </div>
+
+        {# Onglet Sécurité #}
+        <input type="radio" name="profile_tabs" role="tab" class="tab [--tab-bg:var(--color-base-100)]" aria-label="Sécurité" />
+        <div role="tabpanel" class="tab-content bg-base-100 border-base-300 rounded-box p-6 shadow-sm">
+            <h2 class="text-xl font-display mb-4 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-accent" viewBox="0 0 24 24"><path fill="currentColor" d="M12 17a2 2 0 0 0 2-2a2 2 0 0 0-2-2a2 2 0 0 0-2 2a2 2 0 0 0 2 2m6-9a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2h1V6a5 5 0 0 1 5-5a5 5 0 0 1 5 5v2h1m-6-5a3 3 0 0 0-3 3v2h6V6a3 3 0 0 0-3-3z"/></svg>
+                Mot de Passe
+            </h2>
+            
+            {{ form_start(passwordForm, {'attr': {'class': 'space-y-4 max-w-md'}}) }}
+                <div class="form-control">
+                    {{ form_label(passwordForm.currentPassword, null, {'label_attr': {'class': 'label-text font-bold text-muted uppercase text-xs'}}) }}
+                    {{ form_widget(passwordForm.currentPassword) }}
+                    {{ form_errors(passwordForm.currentPassword) }}
+                </div>
+                <div class="form-control">
+                    {{ form_label(passwordForm.plainPassword.first, null, {'label_attr': {'class': 'label-text font-bold text-muted uppercase text-xs'}}) }}
+                    {{ form_widget(passwordForm.plainPassword.first) }}
+                    {{ form_errors(passwordForm.plainPassword.first) }}
+                </div>
+                <div class="form-control">
+                    {{ form_label(passwordForm.plainPassword.second, null, {'label_attr': {'class': 'label-text font-bold text-muted uppercase text-xs'}}) }}
+                    {{ form_widget(passwordForm.plainPassword.second) }}
+                </div>
+                <button type="submit" class="btn btn-accent font-display mt-4 w-full">Mettre à jour le mot de passe</button>
+            {{ form_end(passwordForm) }}
+        </div>
+
+        {# Onglet Préférences #}
+        <input type="radio" name="profile_tabs" role="tab" class="tab [--tab-bg:var(--color-base-100)]" aria-label="Préférences" />
+        <div role="tabpanel" class="tab-content bg-base-100 border-base-300 rounded-box p-6 shadow-sm">
+            <h2 class="text-xl font-display mb-4 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-secondary" viewBox="0 0 24 24"><path fill="currentColor" d="M12 21q-3.75 0-6.375-2.625T3 12t2.625-6.375T12 3t6.375 2.625T21 12t-2.625 6.375T12 21m0-2q2.9 0 4.95-2.05T19 12t-2.05-4.95T12 5z"/></svg>
+                Apparence du site
+            </h2>
+            
+            <div class="flex flex-col gap-4 p-4 bg-base-200/50 rounded-xl border border-base-200 max-w-md">
+                <div>
+                    <div class="font-bold">Thème de l'application</div>
+                    <div class="text-sm text-base-content/60 mb-4">Choisis ton thème préféré parmi la liste ci-dessous. Le bouton Soleil/Lune dans la barre de navigation basculera toujours vers le mode clair/sombre par défaut.</div>
+                </div>
+                
+                <ul class="menu bg-base-100 w-full rounded-box border border-base-300">
+                    <li><button onclick="setTheme('dark')"      class="theme-btn flex gap-2 items-center"><span style="width:1rem;height:1rem;border-radius:50%;background:#1d232a;border:1px solid #374151;flex-shrink:0;display:inline-block"></span> Sombre (Par défaut)</button></li>
+                    <li><button onclick="setTheme('light')"     class="theme-btn flex gap-2 items-center"><span style="width:1rem;height:1rem;border-radius:50%;background:#ffffff;border:1px solid #e5e7eb;flex-shrink:0;display:inline-block"></span> Clair</button></li>
+                    <li><button onclick="setTheme('business')"  class="theme-btn flex gap-2 items-center"><span style="width:1rem;height:1rem;border-radius:50%;background:#1c1917;border:2px solid #eab308;flex-shrink:0;display:inline-block"></span> Business</button></li>
+                    <li><button onclick="setTheme('nord')"      class="theme-btn flex gap-2 items-center"><span style="width:1rem;height:1rem;border-radius:50%;background:#e5e9f0;border:1px solid #88c0d0;flex-shrink:0;display:inline-block"></span> Nord</button></li>
+                    <li><button onclick="setTheme('corporate')" class="theme-btn flex gap-2 items-center"><span style="width:1rem;height:1rem;border-radius:50%;background:#f9fafb;border:2px solid #1d4ed8;flex-shrink:0;display:inline-block"></span> Corporate</button></li>
+                    <li><button onclick="setTheme('valentine')" class="theme-btn flex gap-2 items-center"><span style="width:1rem;height:1rem;border-radius:50%;background:#fbcfe8;border:2px solid #f472b6;flex-shrink:0;display:inline-block"></span> Valentine</button></li>
+                </ul>
+            </div>
+            
+            <script>
+                // Mettre à jour l'état actif des boutons dans la liste
+                function updateActiveThemeButton() {
+                    var current = localStorage.getItem('theme') || 'dark';
+                    document.querySelectorAll('.theme-btn').forEach(function(btn) {
+                        btn.classList.toggle('active', btn.getAttribute('onclick') === "setTheme('" + current + "')");
+                    });
+                }
+                
+                // On écoute les changements locaux pour mettre à jour la liste si on clique dans la navbar
+                document.addEventListener('DOMContentLoaded', updateActiveThemeButton);
+                
+                // On surcharge la fonction setTheme localement pour qu'elle mette aussi à jour les boutons
+                const originalSetTheme = window.setTheme;
+                window.setTheme = function(theme) {
+                    originalSetTheme(theme);
+                    updateActiveThemeButton();
+                };
+            </script>
+        </div>
+
+        {# Onglet Succès & Badges #}
+        <input type="radio" name="profile_tabs" role="tab" class="tab [--tab-bg:var(--color-base-100)]" aria-label="Succès & Badges" />
+        <div role="tabpanel" class="tab-content bg-base-100 border-base-300 rounded-box p-6 shadow-sm">
+            <h2 class="text-xl font-display mb-6 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-warning" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                Trophées
+            </h2>
+            
+            <div class="flex flex-col md:flex-row gap-6 mb-8">
+                <div class="stat bg-base-200/50 rounded-2xl border border-base-200 flex-1">
+                    <div class="stat-figure text-error">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"/></svg>
+                    </div>
+                    <div class="stat-title font-bold text-xs tracking-widest uppercase">Série Actuelle</div>
+                    <div class="stat-value text-error">{{ app.user.currentStreak }} jours</div>
+                    <div class="stat-desc">Connecte-toi tous les jours !</div>
+                </div>
+                
+                <div class="stat bg-base-200/50 rounded-2xl border border-base-200 flex-1">
+                    <div class="stat-figure text-warning">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg>
+                    </div>
+                    <div class="stat-title font-bold text-xs tracking-widest uppercase">Meilleure Série</div>
+                    <div class="stat-value text-warning">{{ app.user.longestStreak }} jours</div>
+                    <div class="stat-desc">Ton record absolu.</div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                {% for badge in badges %}
+                    <div class="card {{ badge.is_unlocked ? 'bg-base-200 border-primary' : 'bg-base-100 opacity-50 grayscale border-base-300' }} border shadow-sm text-center">
+                        <div class="card-body p-4 items-center">
+                            <div class="text-4xl mb-2">{{ badge.icon }}</div>
+                            <h3 class="font-bold text-sm">{{ badge.name }}</h3>
+                            <p class="text-xs mt-1 text-base-content/60 leading-tight">{{ badge.description }}</p>
+                            {% if badge.is_unlocked %}
+                                <div class="badge badge-success badge-sm mt-3 border-none bg-success/20 text-success font-bold">DÉBLOQUÉ</div>
+                            {% else %}
+                                <div class="badge badge-ghost badge-sm mt-3 opacity-50">VERROUILLÉ</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
 </div>
 {% endblock %}

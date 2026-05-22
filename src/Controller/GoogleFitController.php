@@ -34,7 +34,7 @@ final class GoogleFitController extends AbstractController
     #[Route('/connect/google', name: 'connect_google')]
     public function connect(ClientRegistry $clientRegistry): Response
     {
-        return $clientRegistry->getClient('google')->redirect(
+        return $clientRegistry->getClient('google_fit')->redirect(
             scopes: ['https://www.googleapis.com/auth/fitness.activity.read'],
             options: [
                 // Sans access_type=offline, Google ne renvoie PAS de refresh_token.
@@ -61,7 +61,7 @@ final class GoogleFitController extends AbstractController
         $user = $this->getUser();
 
         try {
-            $client = $clientRegistry->getClient('google');
+            $client = $clientRegistry->getClient('google_fit');
             $token = $client->getAccessToken();
 
             $accessToken = $token->getToken();

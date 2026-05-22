@@ -26,7 +26,7 @@
 </div>
 
 {# ── STATS OBJECTIF POIDS ────────────────────────────────────────────────────── #}
-<div class="stats stats-vertical sm:stats-horizontal shadow bg-base-100 border border-base-200 w-full mb-6">
+<div class="stats stats-vertical sm:stats-horizontal shadow-xl bg-base-100/80 backdrop-blur-md border border-base-200/50 w-full mb-6">
 
   <div class="stat">
     <div class="stat-figure text-primary">
@@ -77,7 +77,7 @@
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
 
   {# ── SÉANCE DU JOUR ────────────────────────────────────────────────────────── #}
-  <div class="card bg-base-100 shadow-sm border border-base-200">
+  <div class="card bg-base-100/80 backdrop-blur-md shadow-xl border border-base-200/50">
     <div class="card-body">
       <h2 class="card-title text-base">
         <svg class="h-4 w-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
@@ -93,7 +93,10 @@
             <p class="text-xl font-bold">{{ todayWorkout.name }}</p>
             <p class="text-sm text-base-content/50 mt-1">{{ todayWorkout.exerciseTemplates|length }} exercice(s)</p>
           </div>
-          <a href="{{ path('app_session_new') }}" class="btn btn-secondary btn-sm shrink-0">+ Logger</a>
+          <div class="flex flex-col gap-2 shrink-0">
+            <a href="{{ path('app_session_play', {id: todayWorkout.id}) }}" class="btn btn-primary btn-sm animate-pulse">+ Démarrer (Live)</a>
+            <a href="{{ path('app_session_new') }}" class="btn btn-secondary btn-xs btn-outline">Saisie manuelle</a>
+          </div>
         </div>
         <div class="flex flex-wrap gap-1.5 mt-3">
           {% for et in todayWorkout.exerciseTemplates %}
@@ -118,7 +121,7 @@
   </div>
 
   {# ── NUTRITION DU JOUR ─────────────────────────────────────────────────────── #}
-  <div class="card bg-base-100 shadow-sm border border-base-200">
+  <div class="card bg-base-100/80 backdrop-blur-md shadow-xl border border-base-200/50">
     <div class="card-body">
       <div class="flex justify-between items-center">
         <h2 class="card-title text-base">
@@ -177,7 +180,7 @@
 </div>
 
 {# ── HISTORIQUE POIDS ─────────────────────────────────────────────────────────── #}
-<div class="card bg-base-100 shadow-sm border border-base-200 mb-4">
+<div class="card bg-base-100/80 backdrop-blur-md shadow-xl border border-base-200/50 mb-4">
   <div class="card-body">
     <div class="flex justify-between items-center mb-2">
       <h2 class="card-title text-base">
@@ -209,7 +212,7 @@
 </div>
 
 {# ── DERNIÈRES SÉANCES ────────────────────────────────────────────────────────── #}
-<div class="card bg-base-100 shadow-sm border border-base-200">
+<div class="card bg-base-100/80 backdrop-blur-md shadow-xl border border-base-200/50">
   <div class="card-body">
     <div class="flex justify-between items-center mb-2">
       <h2 class="card-title text-base">

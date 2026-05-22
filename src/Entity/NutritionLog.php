@@ -86,13 +86,17 @@ class NutritionLog
     #[Groups(['nutrition:read', 'nutrition:write'])]
     private ?string $waterL = null;
 
+    #[ORM\Column(type: 'integer', nullable: true)]
+    #[Groups(['nutrition:read', 'nutrition:write'])]
+    private ?int $waterMl = null;
+
+    #[ORM\Column(type: 'string', length: 255, nullable: true)]
+    #[Groups(['nutrition:read', 'nutrition:write'])]
+    private ?string $imageFilename = null;
+
     #[ORM\Column(type: 'text', nullable: true)]
     #[Groups(['nutrition:read', 'nutrition:write'])]
     private ?string $notes = null;
-
-    #[ORM\Column(length: 255, nullable: true)]
-    #[Groups(['nutrition:read', 'nutrition:write'])]
-    private ?string $imageFilename = null;
 
     #[ORM\Column]
     #[Groups(['nutrition:read'])]
@@ -121,6 +125,8 @@ class NutritionLog
     public function setFiberG(?int $v): self { $this->fiberG = $v; return $this; }
     public function getWaterL(): ?string { return $this->waterL; }
     public function setWaterL(?string $v): self { $this->waterL = $v; return $this; }
+    public function getWaterMl(): ?int { return $this->waterMl; }
+    public function setWaterMl(?int $v): self { $this->waterMl = $v; return $this; }
     public function getNotes(): ?string { return $this->notes; }
     public function setNotes(?string $n): self { $this->notes = $n; return $this; }
     public function getImageFilename(): ?string { return $this->imageFilename; }
