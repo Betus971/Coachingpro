@@ -19,6 +19,8 @@ services:
             $googleClientSecret: '%env(GOOGLE_CLIENT_SECRET)%'
             # Dossier d'upload pour les photos de repas (chemin absolu)
             $nutritionUploadsDir: '%kernel.project_dir%/public/uploads/nutrition'
+            # Dossier d'upload pour les photos de transformation (chemin absolu)
+            $progressUploadsDir: '%kernel.project_dir%/public/uploads/progress'
             # Clé API Gemini (Google AI Studio)
             $geminiApiKey: '%env(default::GEMINI_API_KEY)%'
 

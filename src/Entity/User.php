@@ -107,6 +107,18 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[Groups(['user:read', 'user:write'])]
     private ?\DateTimeImmutable $birthDate = null;
 
+    // ── Gamification ────────────────────────────────────────────────────────
+    #[ORM\Column(options: ["default" => 0])]
+    #[Groups(['user:read'])]
+    private int $currentStreak = 0;
+
+    #[ORM\Column(options: ["default" => 0])]
+    #[Groups(['user:read'])]
+    private int $longestStreak = 0;
+
+    #[ORM\Column(type: 'date_immutable', nullable: true)]
+    private ?\DateTimeImmutable $lastActiveDate = null;
+
     // ── Google Fit OAuth tokens ─────────────────────────────────────────────
     // Volontairement HORS des groupes Serializer : ces tokens ne doivent JAMAIS
     // sortir via l'API. Chiffrer en prod (kernel.secret + Sodium) si on veut être propre.
@@ -274,6 +286,39 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function getCreatedAt(): \DateTimeImmutable
     {
         return $this->createdAt;
+    }
+
+    public function getCurrentStreak(): int
+    {
+        return $this->currentStreak;
+    }
+
+    public function setCurrentStreak(int $currentStreak): self
+    {
+        $this->currentStreak = $currentStreak;
+        return $this;
+    }
+
+    public function getLongestStreak(): int
+    {
+        return $this->longestStreak;
+    }
+
+    public function setLongestStreak(int $longestStreak): self
+    {
+        $this->longestStreak = $longestStreak;
+        return $this;
+    }
+
+    public function getLastActiveDate(): ?\DateTimeImmutable
+    {
+        return $this->lastActiveDate;
+    }
+
+    public function setLastActiveDate(?\DateTimeImmutable $lastActiveDate): self
+    {
+        $this->lastActiveDate = $lastActiveDate;
+        return $this;
     }
 
     public function isCoach(): bool

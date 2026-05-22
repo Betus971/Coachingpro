@@ -12,12 +12,22 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use App\Service\GamificationService;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
+use Symfony\Component\String\Slugger\SluggerInterface;
+use Symfony\Component\HttpFoundation\File\Exception\FileException;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 #[Route('/poids', name: 'app_weight_')]
 class WeightLogController extends AbstractController
 {
+    private const MAX_PHOTO_SIZE = 5 * 1024 * 1024;
+    private const ALLOWED_PHOTO_MIMES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'];
+
+    public function __construct(
+        private readonly string $progressUploadsDir,
+    ) {}
     #[Route('', name: 'index')]
     public function index(WeightLogRepository $repo, GeminiCoachService $gemini): Response
     {
@@ -32,7 +42,7 @@ class WeightLogController extends AbstractController
     }
 
     #[Route('/new', name: 'new', methods: ['POST'])]
-    public function new(Request $request, EntityManagerInterface $em, ValidatorInterface $validator): Response
+    public function new(Request $request, EntityManagerInterface $em, ValidatorInterface $validator, SluggerInterface $slugger, GamificationService $gamification): Response
     {
         /** @var User $user */
         $user = $this->getUser();
@@ -49,8 +59,22 @@ class WeightLogController extends AbstractController
             return $this->redirectToRoute('app_weight_index');
         }
 
+        // Upload photo
+        $photoFile = $request->files->get('photo');
+        if ($photoFile instanceof UploadedFile && $photoFile->isValid()) {
+            $newFilename = $this->handlePhotoUpload($photoFile, $slugger);
+            if ($newFilename !== null) {
+                $log->setImageFilename($newFilename);
+            }
+        }
+
         $em->persist($log);
         $em->flush();
+
+        $gamificationStatus = $gamification->updateStreak($user);
+        if ($gamificationStatus['streak_updated'] && $gamificationStatus['message']) {
+            $this->addFlash('success', $gamificationStatus['message']);
+        }
 
         $this->addFlash('success', 'Pesée enregistrée ✓');
         return $this->redirectToRoute('app_weight_index');
@@ -70,5 +94,36 @@ class WeightLogController extends AbstractController
 
         $this->addFlash('success', 'Pesée supprimée.');
         return $this->redirectToRoute('app_weight_index');
+    }
+
+    private function handlePhotoUpload(UploadedFile $photoFile, SluggerInterface $slugger): ?string
+    {
+        if ($photoFile->getSize() > self::MAX_PHOTO_SIZE) {
+            $this->addFlash('error', 'Photo trop lourde (max 5 Mo).');
+            return null;
+        }
+
+        if (!in_array($photoFile->getMimeType(), self::ALLOWED_PHOTO_MIMES, true)) {
+            $this->addFlash('error', 'Format non autorisé.');
+            return null;
+        }
+
+        if (!is_dir($this->progressUploadsDir)) {
+            if (!mkdir($this->progressUploadsDir, 0755, true) && !is_dir($this->progressUploadsDir)) {
+                return null;
+            }
+        }
+
+        $originalFilename = pathinfo($photoFile->getClientOriginalName(), PATHINFO_FILENAME);
+        $safeFilename = $slugger->slug($originalFilename);
+        $newFilename = $safeFilename . '-' . uniqid('', true) . '.' . $photoFile->guessExtension();
+
+        try {
+            $photoFile->move($this->progressUploadsDir, $newFilename);
+        } catch (FileException $e) {
+            return null;
+        }
+
+        return $newFilename;
     }
 }
