@@ -91,6 +91,22 @@ class DashboardController extends AbstractController
                 ],
             ],
         ]);
+        
+        $chart->setOptions([
+            'maintainAspectRatio' => false,
+            'layout' => [
+                'padding' => [
+                    'top' => 15,
+                ],
+            ],
+            'plugins' => [
+                'legend' => [
+                    'labels' => [
+                        'padding' => 20,
+                    ],
+                ],
+            ],
+        ]);
 
         // Séance d'aujourd'hui selon le programme
         $todayWorkout = null;

@@ -13,6 +13,7 @@ use Symfony\Component\HttpFoundation\File\Exception\FileException;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use App\Service\GamificationService;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\String\Slugger\SluggerInterface;
 
@@ -55,7 +56,7 @@ class NutritionLogController extends AbstractController
     }
 
     #[Route('/new', name: 'new', methods: ['POST'])]
-    public function new(Request $request, EntityManagerInterface $em, SluggerInterface $slugger): Response
+    public function new(Request $request, EntityManagerInterface $em, SluggerInterface $slugger, GamificationService $gamification): Response
     {
         /** @var User $user */
         $user = $this->getUser();
@@ -97,6 +98,11 @@ class NutritionLogController extends AbstractController
 
         $em->persist($log);
         $em->flush();
+
+        $gamificationStatus = $gamification->updateStreak($user);
+        if ($gamificationStatus['streak_updated'] && $gamificationStatus['message']) {
+            $this->addFlash('success', $gamificationStatus['message']);
+        }
 
         $this->addFlash('success', 'Nutrition enregistrée ✓');
         return $this->redirectToRoute('app_nutrition_index');

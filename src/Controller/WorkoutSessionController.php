@@ -11,7 +11,9 @@ use App\Entity\WorkoutSet;
 use App\Repository\ExerciseRepository;
 use App\Repository\WorkoutSessionRepository;
 use App\Repository\WorkoutTemplateRepository;
+use App\Entity\WorkoutTemplate;
 use App\Service\GeminiCoachService;
+use App\Service\GamificationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -51,8 +53,13 @@ class WorkoutSessionController extends AbstractController
     }
 
     #[Route('/new', name: 'create', methods: ['POST'])]
-    public function create(Request $request, EntityManagerInterface $em, ExerciseRepository $exerciseRepo, WorkoutTemplateRepository $templateRepo): Response
-    {
+    public function create(
+        Request $request,
+        EntityManagerInterface $em,
+        ExerciseRepository $exerciseRepo,
+        WorkoutTemplateRepository $templateRepo,
+        GamificationService $gamification
+    ): Response {
         /** @var User $user */
         $user = $this->getUser();
 
@@ -94,8 +101,22 @@ class WorkoutSessionController extends AbstractController
         }
 
         $em->flush();
+
+        $gamificationStatus = $gamification->updateStreak($user);
+        if ($gamificationStatus['streak_updated'] && $gamificationStatus['message']) {
+            $this->addFlash('success', $gamificationStatus['message']);
+        }
+
         $this->addFlash('success', 'Séance enregistrée ✓');
         return $this->redirectToRoute('app_session_show', ['id' => $session->getId()]);
+    }
+
+    #[Route('/play/{id}', name: 'play', methods: ['GET'])]
+    public function play(WorkoutTemplate $template): Response
+    {
+        return $this->render('session/play.html.twig', [
+            'template' => $template,
+        ]);
     }
 
     #[Route('/{id}', name: 'show')]

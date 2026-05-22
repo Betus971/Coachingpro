@@ -57,7 +57,16 @@
 
   {% else %}
 
-    {# ── KPI HEADER ───────────────────────────────────────────────────────── #}
+    {# ── ONGLETS DE NAVIGATION ──────────────────────────────────────────────── #}
+    <div role="tablist" class="tabs tabs-boxed mb-6 bg-base-200 border border-base-300 w-fit">
+      <a role="tab" class="tab tab-active" id="tab-data" onclick="showTab('data')">Tableau de bord</a>
+      <a role="tab" class="tab" id="tab-gallery" onclick="showTab('gallery')">Galerie Transformation</a>
+    </div>
+
+    {# ── CONTENU : ONGLET DATA ────────────────────────────────────────────── #}
+    <div id="content-data" class="space-y-6">
+
+      {# ── KPI HEADER ───────────────────────────────────────────────────────── #}
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
 
       <div class="card-elevated p-5">
@@ -203,6 +212,63 @@
       </table>
     </div>
 
+    </div> {# /content-data #}
+
+    {# ── CONTENU : ONGLET GALERIE ─────────────────────────────────────────── #}
+    <div id="content-gallery" class="hidden">
+      {% set photos = logs|filter(l => l.imageFilename) %}
+      {% if photos is empty %}
+        <div class="card-elevated p-12 text-center">
+          <svg class="h-16 w-16 mx-auto opacity-20 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+          <div class="font-display text-2xl opacity-40 mb-2">AUCUNE PHOTO DE TRANSFORMATION</div>
+          <p class="text-sm opacity-50">Prends une photo lors de ta prochaine pesée pour commencer ta galerie Avant/Après.</p>
+        </div>
+      {% else %}
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {% for log in photos %}
+            <div class="card bg-base-100 shadow-xl overflow-hidden group">
+              <figure class="relative aspect-[3/4] bg-base-300">
+                <img src="{{ asset('uploads/progress/' ~ log.imageFilename) }}" alt="Transformation" class="object-cover w-full h-full transition-transform duration-500 group-hover:scale-105" loading="lazy">
+                {# Gradient overlay en bas #}
+                <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent pointer-events-none"></div>
+                
+                {# Infos sur l'image #}
+                <div class="absolute bottom-0 left-0 right-0 p-4 text-white">
+                  <p class="text-xs font-bold tracking-widest opacity-80 mb-1">{{ log.loggedOn|date('d/m/Y') }}</p>
+                  <p class="font-display text-3xl">{{ log.weightKg }} <span class="text-sm opacity-80">kg</span></p>
+                  
+                  {# Delta depuis la première photo si possible #}
+                  {% set firstPhoto = photos|last %}
+                  {% if log.id != firstPhoto.id %}
+                    {% set diff = log.weightKg - firstPhoto.weightKg %}
+                    {% if diff < 0 %}
+                      <div class="badge badge-success badge-sm mt-2 border-none bg-success/80 backdrop-blur text-white">{{ diff|number_format(1, '.') }} kg (total)</div>
+                    {% endif %}
+                  {% endif %}
+                </div>
+              </figure>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    </div>
+
+    <script>
+      function showTab(tabName) {
+        // Cacher tous les contenus
+        document.getElementById('content-data').classList.add('hidden');
+        document.getElementById('content-gallery').classList.add('hidden');
+        
+        // Afficher le bon contenu
+        document.getElementById('content-' + tabName).classList.remove('hidden');
+        
+        // Mettre à jour le style des onglets
+        document.getElementById('tab-data').classList.remove('tab-active');
+        document.getElementById('tab-gallery').classList.remove('tab-active');
+        document.getElementById('tab-' + tabName).classList.add('tab-active');
+      }
+    </script>
+
   {% endif %}
 </div>
 
@@ -241,7 +307,7 @@
 <dialog id="modal-weight" class="modal">
   <div class="modal-box bg-base-200 border border-base-300 max-w-sm">
     <h3 class="font-display text-2xl mb-6">NOUVELLE PESÉE</h3>
-    <form action="{{ path('app_weight_new') }}" method="post" class="flex flex-col gap-4">
+    <form action="{{ path('app_weight_new') }}" method="post" enctype="multipart/form-data" class="flex flex-col gap-4">
       <div class="form-control">
         <label class="label pb-1">
           <span class="label-text text-xs tracking-widest uppercase opacity-40">Poids (kg)</span>
@@ -255,6 +321,12 @@
         </label>
         <input type="date" name="logged_on" value="{{ 'now'|date('Y-m-d') }}"
                class="input input-bordered bg-base-300 focus:border-primary">
+      </div>
+      <div class="form-control">
+        <label class="label pb-1">
+          <span class="label-text text-xs tracking-widest uppercase opacity-40">Photo (optionnel)</span>
+        </label>
+        <input type="file" name="photo" accept="image/*" class="file-input file-input-bordered bg-base-300 w-full focus:border-primary">
       </div>
       <div class="form-control">
         <label class="label pb-1">
