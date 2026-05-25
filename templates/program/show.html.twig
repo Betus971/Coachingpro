@@ -63,18 +63,18 @@
             
             <div class="collapse collapse-arrow bg-base-100 shadow-sm rounded-2xl border border-base-200 {{ isToday ? 'ring-2 ring-primary ring-offset-2 ring-offset-base-100' : '' }}">
               <input type="radio" name="program-accordion" {{ isToday ? 'checked="checked"' : '' }} /> 
-              <div class="collapse-title text-xl font-medium flex items-center justify-between py-4 px-6">
-                <div class="flex items-center gap-4">
-                  <span class="font-display {{ isToday ? 'text-primary text-2xl' : 'text-base-content/70' }}">{{ dayName }}</span>
+              <div class="collapse-title py-4 px-6 pr-12 min-h-0">
+                <div class="flex items-center gap-3">
+                  <span class="font-display text-xl {{ isToday ? 'text-primary' : 'text-base-content/70' }}">{{ dayName }}</span>
                   {% if isToday %}
                     <span class="badge badge-primary badge-sm font-bold tracking-wider hidden sm:inline-flex">AUJOURD'HUI</span>
                   {% endif %}
                 </div>
-                <div class="text-sm font-bold tracking-widest uppercase {{ template ? (('cardio' in template.name|lower) ? 'text-accent' : 'text-primary') : 'text-muted' }}">
+                <div class="text-xs font-bold tracking-widest uppercase mt-1 {{ template ? (('cardio' in template.name|lower) ? 'text-accent' : 'text-primary') : 'text-base-content/40' }}">
                   {% if template %}
                     {{ template.name|split('—')|last|trim }}
                   {% else %}
-                    REPOS
+                    Repos
                   {% endif %}
                 </div>
               </div>
