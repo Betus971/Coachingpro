@@ -7,7 +7,7 @@ namespace App\Controller;
 use App\Entity\User;
 use App\Entity\WeightLog;
 use App\Repository\WeightLogRepository;
-use App\Service\GeminiCoachService;
+use App\Service\MistralCoachService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -29,7 +29,7 @@ class WeightLogController extends AbstractController
         private readonly string $progressUploadsDir,
     ) {}
     #[Route('', name: 'index')]
-    public function index(WeightLogRepository $repo, GeminiCoachService $gemini): Response
+    public function index(WeightLogRepository $repo, MistralCoachService $gemini): Response
     {
         /** @var User $user */
         $user = $this->getUser();
