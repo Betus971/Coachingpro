@@ -12,7 +12,7 @@ use App\Repository\ExerciseRepository;
 use App\Repository\WorkoutSessionRepository;
 use App\Repository\WorkoutTemplateRepository;
 use App\Entity\WorkoutTemplate;
-use App\Service\GeminiCoachService;
+use App\Service\MistralCoachService;
 use App\Service\GamificationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -24,7 +24,7 @@ use Symfony\Component\Routing\Attribute\Route;
 class WorkoutSessionController extends AbstractController
 {
     #[Route('', name: 'index')]
-    public function index(WorkoutSessionRepository $repo, GeminiCoachService $gemini): Response
+    public function index(WorkoutSessionRepository $repo, MistralCoachService $gemini): Response
     {
         /** @var User $user */
         $user = $this->getUser();

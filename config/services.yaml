@@ -21,8 +21,8 @@ services:
             $nutritionUploadsDir: '%kernel.project_dir%/public/uploads/nutrition'
             # Dossier d'upload pour les photos de transformation (chemin absolu)
             $progressUploadsDir: '%kernel.project_dir%/public/uploads/progress'
-            # Clé API Gemini (Google AI Studio)
-            $geminiApiKey: '%env(default::GEMINI_API_KEY)%'
+            # Clé API Mistral AI
+            $mistralApiKey: '%env(default::MISTRAL_API_KEY)%'
 
     # makes classes in src/ available to be used as services
     # this creates a service per class whose id is the fully-qualified class name

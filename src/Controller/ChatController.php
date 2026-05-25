@@ -7,7 +7,7 @@ namespace App\Controller;
 use App\Entity\ChatMessage;
 use App\Entity\User;
 use App\Repository\ChatMessageRepository;
-use App\Service\GeminiCoachService;
+use App\Service\MistralCoachService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -47,7 +47,7 @@ class ChatController extends AbstractController
     public function send(
         Request $request,
         ChatMessageRepository $repo,
-        GeminiCoachService $gemini,
+        MistralCoachService $gemini,
         EntityManagerInterface $em,
     ): JsonResponse {
         /** @var User $user */

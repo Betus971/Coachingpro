@@ -10,7 +10,7 @@ use App\Repository\NutritionLogRepository;
 use App\Repository\WeightLogRepository;
 use App\Repository\WorkoutSessionRepository;
 use App\Repository\ProgramAssignmentRepository;
-use App\Service\GeminiCoachService;
+use App\Service\MistralCoachService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
@@ -27,7 +27,7 @@ class DashboardController extends AbstractController
         NutritionLogRepository $nutritionRepo,
         ProgramAssignmentRepository $assignmentRepo,
         ChartBuilderInterface $chartBuilder,
-        GeminiCoachService $gemini,
+        MistralCoachService $gemini,
     ): Response {
         /** @var User $user */
         $user = $this->getUser();
