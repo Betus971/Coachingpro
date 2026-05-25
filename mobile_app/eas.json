@@ -5,22 +5,20 @@
   },
   "build": {
     "preview": {
-      "channel": "preview",
       "distribution": "internal",
       "android": {
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "http://192.168.1.71:90"
+        "EXPO_PUBLIC_API_URL": "https://coachingpro.ubikd.com"
       }
     },
     "production": {
-      "channel": "production",
       "android": {
         "buildType": "app-bundle"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://api.coachpro.example"
+        "EXPO_PUBLIC_API_URL": "https://coachingpro.ubikd.com"
       }
     }
   },

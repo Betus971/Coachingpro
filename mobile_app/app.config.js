@@ -26,7 +26,7 @@ module.exports = ({ config }) => ({
   },
   android: {
     package: 'com.donleo.coachingpro',
-    versionCode: 2,
+    versionCode: 3,
     adaptiveIcon: {
       foregroundImage: './assets/adaptive-icon.png',
       backgroundColor: '#1d232a',

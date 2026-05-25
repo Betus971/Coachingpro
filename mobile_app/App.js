@@ -9,7 +9,7 @@ import {
 import { WebView } from 'react-native-webview';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
-const APP_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://192.168.1.71:90';
+const APP_URL = process.env.EXPO_PUBLIC_API_URL ?? 'https://coachingpro.ubikd.com';
 
 function AppWebView() {
   const webViewRef = useRef(null);
@@ -50,8 +50,9 @@ function AppWebView() {
         domStorageEnabled
         allowsInlineMediaPlayback
         mediaPlaybackRequiresUserAction={false}
-        // User-agent mobile pour adapter le CSS si besoin
-        applicationNameForUserAgent="CoachProApp/1.0"
+        // User-agent Chrome standard — Google OAuth bloque les WebViews ("wv")
+        // on se fait passer pour Chrome Mobile pour débloquer le login Google
+        userAgent="Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36"
       />
     </View>
   );
