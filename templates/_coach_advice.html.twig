@@ -2,9 +2,20 @@
   Widget "Coach IA" — à inclure avec :
   {% include '_coach_advice.html.twig' with { advice: coachAdvice, context: 'poids' } %}
 
-  - advice  : string|null  — texte brut de Gemini (bullet points)
+  - advice  : string|null  — texte brut de Mistral (bullet points)
   - context : string       — utilisé pour le label (ex: 'poids', 'séances', 'dashboard')
 #}
+
+{% macro cleanLine(text) %}
+  {#- Supprime les syntaxes Markdown résiduelles que l'IA pourrait encore envoyer -#}
+  {{- text
+    |replace({'**': '', '__': '', '* ': '', '_ ': ''})
+    |replace({'*': '', '_': ''})
+    |trim
+  -}}
+{% endmacro %}
+
+{% import _self as fmt %}
 
 {% if advice is not null %}
 <div class="card bg-gradient-to-br from-primary/10 to-transparent backdrop-blur-sm border-l-4 border-primary shadow-lg animate-slide-up mb-6">
@@ -19,17 +30,17 @@
     <span class="ml-auto text-xs text-muted">Mis à jour aujourd'hui</span>
   </div>
 
-  {# Contenu — rendu ligne par ligne avec mise en forme des bullet points #}
+  {# Contenu — rendu ligne par ligne avec nettoyage Markdown #}
   <div class="text-sm leading-relaxed space-y-1.5 text-muted-strong">
     {% for line in advice|split('\n') %}
       {% set trimmed = line|trim %}
-      {% if trimmed starts with '•' or trimmed starts with '-' or trimmed starts with '*' %}
+      {% if trimmed starts with '•' or trimmed starts with '-' or trimmed starts with '#' %}
         <div class="flex gap-2">
           <span class="text-primary mt-0.5 shrink-0">•</span>
-          <span>{{ trimmed|replace({'•': '', '- ': '', '* ': ''})|trim }}</span>
+          <span>{{ fmt.cleanLine(trimmed|replace({'•': '', '- ': '', '# ': ''})) }}</span>
         </div>
       {% elseif trimmed|length > 0 %}
-        <p class="opacity-80">{{ trimmed }}</p>
+        <p class="opacity-80">{{ fmt.cleanLine(trimmed) }}</p>
       {% endif %}
     {% endfor %}
   </div>

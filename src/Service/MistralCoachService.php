@@ -222,6 +222,7 @@ Règles de réponse :
 - Utilise ses données réelles quand c'est pertinent
 - Pas d'introduction générique ("Bien sûr !", "Absolument !", etc.)
 - Si tu donnes des conseils nutritionnels ou médicaux, rappelle que tu n'es pas médecin
+- IMPORTANT : N'utilise JAMAIS la syntaxe Markdown (**gras**, *italique*, # titres, ___). Texte brut uniquement, bullet points avec • uniquement.
 PROMPT;
     }
 
@@ -274,7 +275,7 @@ Donne un bilan de tableau de bord en 3 points maximum :
 2. Un conseil actionnable pour la semaine
 3. Un mot de motivation court
 
-Format : utilise des bullet points (•). Sois concis (5-6 lignes max). Pas de titres génériques.
+Format : bullet points (•) uniquement. Max 5-6 lignes. Pas de titres génériques. Jamais de syntaxe Markdown (**gras**, *italique*).
 PROMPT;
     }
 
@@ -323,7 +324,7 @@ Analyse en 3 points :
 2. Commentaire sur la composition corporelle si les données sont disponibles
 3. Un conseil précis pour optimiser la perte de masse grasse tout en préservant le muscle
 
-Format : bullet points (•). Max 6 lignes. Pas d'introduction générique.
+Format : bullet points (•) uniquement. Max 6 lignes. Pas d'introduction générique. Jamais de syntaxe Markdown.
 PROMPT;
     }
 
@@ -365,7 +366,7 @@ Analyse en 3 points :
 2. Conseil sur la récupération ou la progression des charges
 3. Recommandation pour optimiser la prochaine séance
 
-Format : bullet points (•). Max 6 lignes. Direct et actionnable.
+Format : bullet points (•) uniquement. Max 6 lignes. Direct et actionnable. Jamais de syntaxe Markdown.
 PROMPT;
     }
 }
