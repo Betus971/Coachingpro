@@ -62,7 +62,7 @@
             {% set isToday = 'now'|date('N') == dayNum %}
             
             <div class="collapse collapse-arrow bg-base-100 shadow-sm rounded-2xl border border-base-200 {{ isToday ? 'ring-2 ring-primary ring-offset-2 ring-offset-base-100' : '' }}">
-              <input type="radio" name="program-accordion" {{ isToday ? 'checked="checked"' : '' }} /> 
+              <input type="checkbox" {{ isToday ? 'checked="checked"' : '' }} />
               <div class="collapse-title py-4 px-6 pr-12 min-h-0">
                 <div class="flex items-center gap-3">
                   <span class="font-display text-xl {{ isToday ? 'text-primary' : 'text-base-content/70' }}">{{ dayName }}</span>
