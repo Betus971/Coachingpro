@@ -1,5 +1,6 @@
 
 ###> symfony/framework-bundle ###
+/.env
 /.env.local
 /.env.local.php
 /.env.*.local
@@ -25,4 +26,18 @@
 
 # Photos uploadées par les utilisateurs (jamais committer du contenu user-generated)
 /public/uploads/
+
+# Node / Tailwind
+/node_modules/
+npm-debug.log*
+
+# Fichiers de test temporaires
+test_*.php
+
+# APK de distribution
+/public/dl/*.apk
+
+# OS
+.DS_Store
+Thumbs.db
 
