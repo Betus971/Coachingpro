@@ -112,4 +112,38 @@ final readonly class CurrentUserExtension implements QueryCollectionExtensionInt
 
         $alias = $qb->getRootAliases()[0];
         $qb->leftJoin("$alias.goal", '_scope_goal')
-           ->leftJoin('_scope_goal.user', '_scope_
+           ->leftJoin('_scope_goal.user', '_scope_goal_user');
+
+        if ($this->security->isGranted('ROLE_COACH')) {
+            $qb->andWhere('_scope_goal_user = :_scope_self OR _scope_goal_user.coach = :_scope_self')
+               ->setParameter('_scope_self', $user->getId(), 'uuid');
+        } else {
+            $qb->andWhere('_scope_goal_user = :_scope_self')
+               ->setParameter('_scope_self', $user->getId(), 'uuid');
+        }
+    }
+
+    private function addExerciseScopeWhere(QueryBuilder $qb): void
+    {
+        $user = $this->security->getUser();
+        if (!$user instanceof User) {
+            return;
+        }
+        if ($this->security->isGranted('ROLE_ADMIN')) {
+            return;
+        }
+
+        $alias = $qb->getRootAliases()[0];
+
+        $qb->leftJoin("$alias.createdBy", '_scope_exercise_creator')
+           ->andWhere(
+               $qb->expr()->orX(
+                   "$alias.createdBy IS NULL",
+                   '_scope_exercise_creator = :_scope_self',
+                   '_scope_exercise_creator = :_scope_coach'
+               )
+           )
+           ->setParameter('_scope_self', $user->getId(), 'uuid')
+           ->setParameter('_scope_coach', $user->getCoach()?->getId() ?? $user->getId(), 'uuid');
+    }
+}

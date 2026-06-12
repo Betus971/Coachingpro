@@ -110,4 +110,10 @@ final class OwnedResourceVoter extends Voter
             $subject instanceof DailyActivityLog,
             $subject instanceof ProgramAssignment => $subject->getUser(),
             $subject instanceof Goal              => $subject->getUser(),
-            $subject
+            $subject instanceof GoalAdjustment    => $subject->getGoal()->getUser(),
+            $subject instanceof Program           => $subject->getCreatedBy(),
+            $subject instanceof Exercise          => $subject->getCreatedBy(),
+            default                               => null,
+        };
+    }
+}
