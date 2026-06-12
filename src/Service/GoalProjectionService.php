@@ -256,4 +256,29 @@ final readonly class Projection
         public float               $currentValue = 0.0,
         public ?\DateTimeImmutable $etaDate = null,
         public float               $deviationPercent = 0.0,
-        public boo
+        public bool                $isAchieved = false,
+        public bool                $isProgressing = false,
+    ) {}
+
+    public static function insufficient(): self
+    {
+        return new self(hasEnoughData: false);
+    }
+}
+
+/**
+ * Résultat d'une évaluation : la projection (toujours présente) + l'ajustement
+ * persisté lors de ce passage (null si rien n'a bougé).
+ */
+final readonly class GoalEvaluation
+{
+    public function __construct(
+        public Projection       $projection,
+        public ?GoalAdjustment  $adjustment,
+    ) {}
+
+    public function wasAdjusted(): bool
+    {
+        return $this->adjustment !== null;
+    }
+}
