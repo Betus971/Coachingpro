@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Security\Voter;
 
+use App\Entity\Goal;
+use App\Entity\GoalAdjustment;
 use App\Entity\NutritionLog;
 use App\Entity\Program;
 use App\Entity\ProgramAssignment;
@@ -50,6 +52,8 @@ final class OwnedResourceVoter extends Voter
             || $subject instanceof DailyActivityLog
             || $subject instanceof ProgramAssignment
             || $subject instanceof Program
+            || $subject instanceof Goal
+            || $subject instanceof GoalAdjustment
             || $subject instanceof Exercise
             || $subject instanceof User;
     }
@@ -105,9 +109,5 @@ final class OwnedResourceVoter extends Voter
             $subject instanceof WorkoutSession,
             $subject instanceof DailyActivityLog,
             $subject instanceof ProgramAssignment => $subject->getUser(),
-            $subject instanceof Program           => $subject->getCreatedBy(),
-            $subject instanceof Exercise          => $subject->getCreatedBy(),
-            default                               => null,
-        };
-    }
-}
+            $subject instanceof Goal              => $subject->getUser(),
+            $subject

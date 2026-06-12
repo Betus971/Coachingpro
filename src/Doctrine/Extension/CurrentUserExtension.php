@@ -8,6 +8,8 @@ use ApiPlatform\Doctrine\Orm\Extension\QueryCollectionExtensionInterface;
 use ApiPlatform\Doctrine\Orm\Extension\QueryItemExtensionInterface;
 use ApiPlatform\Doctrine\Orm\Util\QueryNameGeneratorInterface;
 use ApiPlatform\Metadata\Operation;
+use App\Entity\Goal;
+use App\Entity\GoalAdjustment;
 use App\Entity\NutritionLog;
 use App\Entity\Program;
 use App\Entity\ProgramAssignment;
@@ -45,6 +47,7 @@ final readonly class CurrentUserExtension implements QueryCollectionExtensionInt
         DailyActivityLog::class  => 'user',
         ProgramAssignment::class => 'user',
         Program::class           => 'createdBy',
+        Goal::class              => 'user',
     ];
 
     public function __construct(private Security $security) {}
@@ -64,6 +67,8 @@ final readonly class CurrentUserExtension implements QueryCollectionExtensionInt
         if (!isset(self::SCOPED_ENTITIES[$resourceClass])) {
             if ($resourceClass === Exercise::class) {
                 $this->addExerciseScopeWhere($qb);
+            } elseif ($resourceClass === GoalAdjustment::class) {
+                $this->addGoalAdjustmentScopeWhere($qb);
             }
             return;
         }
@@ -91,7 +96,11 @@ final readonly class CurrentUserExtension implements QueryCollectionExtensionInt
         }
     }
 
-    private function addExerciseScopeWhere(QueryBuilder $qb): void
+    /**
+     * GoalAdjustment n'a pas de lien direct vers User : on scope via goal.user
+     * (client = ses propres ajustements ; coach = ceux de ses clients).
+     */
+    private function addGoalAdjustmentScopeWhere(QueryBuilder $qb): void
     {
         $user = $this->security->getUser();
         if (!$user instanceof User) {
@@ -102,16 +111,5 @@ final readonly class CurrentUserExtension implements QueryCollectionExtensionInt
         }
 
         $alias = $qb->getRootAliases()[0];
-
-        $qb->leftJoin("$alias.createdBy", '_scope_exercise_creator')
-           ->andWhere(
-               $qb->expr()->orX(
-                   "$alias.createdBy IS NULL",
-                   '_scope_exercise_creator = :_scope_self',
-                   '_scope_exercise_creator = :_scope_coach'
-               )
-           )
-           ->setParameter('_scope_self', $user->getId(), 'uuid')
-           ->setParameter('_scope_coach', $user->getCoach()?->getId() ?? $user->getId(), 'uuid');
-    }
-}
+        $qb->leftJoin("$alias.goal", '_scope_goal')
+           ->leftJoin('_scope_goal.user', '_scope_
