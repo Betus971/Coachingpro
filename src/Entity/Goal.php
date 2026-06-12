@@ -115,6 +115,27 @@ class Goal
     #[Groups(['goal:read', 'goal:write'])]
     private ?Program $program = null;
 
+    // ── Cibles nutritionnelles associées (facultatif) ────────────────────────
+    #[ORM\Column(type: 'smallint', nullable: true)]
+    #[Assert\Positive]
+    #[Groups(['goal:read', 'goal:write'])]
+    private ?int $targetKcal = null;
+
+    #[ORM\Column(type: 'smallint', nullable: true)]
+    #[Assert\Positive]
+    #[Groups(['goal:read', 'goal:write'])]
+    private ?int $targetProteinsG = null;
+
+    #[ORM\Column(type: 'smallint', nullable: true)]
+    #[Assert\Positive]
+    #[Groups(['goal:read', 'goal:write'])]
+    private ?int $targetCarbsG = null;
+
+    #[ORM\Column(type: 'smallint', nullable: true)]
+    #[Assert\Positive]
+    #[Groups(['goal:read', 'goal:write'])]
+    private ?int $targetFatsG = null;
+
     /** @var Collection<int, GoalAdjustment> Historique des modulations. */
     #[ORM\OneToMany(mappedBy: 'goal', targetEntity: GoalAdjustment::class, cascade: ['persist'], orphanRemoval: true)]
     #[ORM\OrderBy(['createdAt' => 'DESC'])]
@@ -181,6 +202,15 @@ class Goal
         }
         return $this;
     }
+
+    public function getTargetKcal(): ?int { return $this->targetKcal; }
+    public function setTargetKcal(?int $v): self { $this->targetKcal = $v; return $this; }
+    public function getTargetProteinsG(): ?int { return $this->targetProteinsG; }
+    public function setTargetProteinsG(?int $v): self { $this->targetProteinsG = $v; return $this; }
+    public function getTargetCarbsG(): ?int { return $this->targetCarbsG; }
+    public function setTargetCarbsG(?int $v): self { $this->targetCarbsG = $v; return $this; }
+    public function getTargetFatsG(): ?int { return $this->targetFatsG; }
+    public function setTargetFatsG(?int $v): self { $this->targetFatsG = $v; return $this; }
 
     public function getCreatedAt(): \DateTimeImmutable { return $this->createdAt; }
     public function getUpdatedAt(): \DateTimeImmutable { return $this->updatedAt; }
