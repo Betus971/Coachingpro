@@ -55,7 +55,7 @@ final class HealthConnectImporter
         $already = $this->existingHcUuids($user);
 
         $sql = <<<SQL
-            SELECT e.uuid            AS hc_uuid,
+            SELECT hex(e.uuid)      AS hc_uuid,
                    e.start_time      AS start_ms,
                    e.end_time        AS end_ms,
                    e.exercise_type   AS type,
