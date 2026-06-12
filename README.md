@@ -1,5 +1,7 @@
 # CoachPro — Application de coaching sportif & nutritionnel
 
+![PHP](https://img.shields.io/badge/PHP-8.4-777BB4?logo=php&logoColor=white) ![Symfony](https://img.shields.io/badge/Symfony-8.0-000000?logo=symfony&logoColor=white) ![API Platform](https://img.shields.io/badge/API_Platform-4.3-38A3A5) ![Doctrine](https://img.shields.io/badge/Doctrine-3.x-FC6A31?logo=doctrine&logoColor=white) ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-4169E1?logo=postgresql&logoColor=white) ![JWT](https://img.shields.io/badge/Auth-JWT-FB015B?logo=jsonwebtokens&logoColor=white) ![React Native](https://img.shields.io/badge/React_Native-0.81-61DAFB?logo=react&logoColor=black) ![Expo](https://img.shields.io/badge/Expo-SDK_54-000020?logo=expo&logoColor=white) ![Mistral AI](https://img.shields.io/badge/Mistral_AI-coach-FF7000?logo=mistralai&logoColor=white) ![License](https://img.shields.io/badge/license-proprietary-lightgrey)
+
 Application de suivi sportif et nutritionnel, conçue **API-First** et pensée **SaaS dès le premier jour**.
 
 - **Phase 1 (MVP)** : usage personnel — tracker poids, perfs en salle, diète, avec un objectif de recomposition (121 → 95 kg, 4 séances PPL + cardio/sem).
