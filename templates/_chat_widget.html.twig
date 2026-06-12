@@ -1,5 +1,5 @@
 {# Widget Chat IA flottant — inclus dans base.html.twig, visible sur toutes les pages #}
-{% if is_granted('IS_AUTHENTICATED_FULLY') %}
+{% if is_granted('IS_AUTHENTICATED_REMEMBERED') %}
 <div
     data-controller="chat"
     class="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3"
