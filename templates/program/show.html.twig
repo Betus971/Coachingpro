@@ -139,6 +139,10 @@
         <div class="card bg-base-100 shadow-xl border border-base-200">
           <div class="card-body">
             
+            {# Calcul dynamique des jalons (interpolation linéaire départ → cible) #}
+            {% set tKg = targetKg|default(95) %}
+            {% set totalDelta = startKg - tKg %}
+            
             <ul class="steps steps-vertical w-full font-display">
               <li class="step step-primary text-base-content/70">
                 <div class="text-left ml-2">
@@ -148,26 +152,26 @@
               </li>
               <li class="step step-primary text-base-content/70">
                 <div class="text-left ml-2">
-                  <div class="text-xs uppercase tracking-widest font-bold text-muted">Mois 2</div>
-                  <div class="text-xl font-bold">~{{ (startKg - 7)|round }} kg</div>
+                  <div class="text-xs uppercase tracking-widest font-bold text-muted">Jalon 1 (25%)</div>
+                  <div class="text-xl font-bold">~{{ (startKg - totalDelta * 0.25)|round }} kg</div>
                 </div>
               </li>
               <li class="step text-base-content/40">
                 <div class="text-left ml-2">
-                  <div class="text-xs uppercase tracking-widest font-bold text-muted">Mois 4</div>
-                  <div class="text-xl font-bold">~{{ (startKg - 13)|round }} kg</div>
+                  <div class="text-xs uppercase tracking-widest font-bold text-muted">Jalon 2 (50%)</div>
+                  <div class="text-xl font-bold">~{{ (startKg - totalDelta * 0.50)|round }} kg</div>
                 </div>
               </li>
               <li class="step text-base-content/40">
                 <div class="text-left ml-2">
-                  <div class="text-xs uppercase tracking-widest font-bold text-muted">Mois 6</div>
-                  <div class="text-xl font-bold">~{{ (startKg - 18)|round }} kg</div>
+                  <div class="text-xs uppercase tracking-widest font-bold text-muted">Jalon 3 (75%)</div>
+                  <div class="text-xl font-bold">~{{ (startKg - totalDelta * 0.75)|round }} kg</div>
                 </div>
               </li>
               <li class="step text-base-content/40" data-content="🎯">
                 <div class="text-left ml-2">
                   <div class="text-xs uppercase tracking-widest font-bold text-primary">Objectif Final</div>
-                  <div class="text-xl font-bold text-primary">95 kg</div>
+                  <div class="text-xl font-bold text-primary">{{ tKg }} kg</div>
                 </div>
               </li>
             </ul>
