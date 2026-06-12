@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Entity\User;
+use App\Repository\GoalRepository;
 use App\Repository\ProgramAssignmentRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
@@ -13,10 +14,13 @@ use Symfony\Component\Routing\Attribute\Route;
 #[Route('/programme', name: 'app_program_show')]
 class ProgramController extends AbstractController
 {
-    public function __invoke(ProgramAssignmentRepository $assignmentRepo, \App\Repository\WeightLogRepository $weightRepo): Response
+    public function __invoke(ProgramAssignmentRepository $assignmentRepo, \App\Repository\WeightLogRepository $weightRepo, GoalRepository $goalRepo): Response
     {
         /** @var User $user */
         $user = $this->getUser();
+
+        $goals = $goalRepo->findOpenForUser($user);
+        $activeGoal = $goals[0] ?? null;
 
         $assignments = $assignmentRepo->findBy(['user' => $user], ['startDate' => 'DESC']);
         $active = null;
@@ -26,7 +30,8 @@ class ProgramController extends AbstractController
 
         // Pesée de départ (poids max) pour calculer les jalons
         $startWeightLog = $weightRepo->findOneBy(['user' => $user], ['weightKg' => 'DESC']);
-        $startKg = $startWeightLog ? (float) $startWeightLog->getWeightKg() : 121.2;
+        $startKg = $activeGoal ? (float) $activeGoal->getStartValue() : ($startWeightLog ? (float) $startWeightLog->getWeightKg() : 121.2);
+        $targetKg = $activeGoal ? (float) $activeGoal->getTargetValue() : 95.0;
 
         // Pesée actuelle (la plus récente)
         $currentWeightLog = $weightRepo->findOneBy(['user' => $user], ['loggedOn' => 'DESC']);
@@ -36,10 +41,12 @@ class ProgramController extends AbstractController
         $dayNames = [1 => 'LUNDI', 2 => 'MARDI', 3 => 'MERCREDI', 4 => 'JEUDI', 5 => 'VENDREDI', 6 => 'SAMEDI', 7 => 'DIMANCHE'];
 
         return $this->render('program/show.html.twig', [
-            'assignment' => $active,
-            'dayNames'   => $dayNames,
-            'startKg'    => $startKg,
-            'currentKg'  => $currentKg,
+            'assignment'  => $active,
+            'activeGoal'  => $activeGoal,
+            'dayNames'    => $dayNames,
+            'startKg'     => $startKg,
+            'targetKg'    => $targetKg,
+            'currentKg'   => $currentKg,
         ]);
     }
 }

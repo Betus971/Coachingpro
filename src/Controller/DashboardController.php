@@ -8,6 +8,7 @@ use App\Entity\User;
 use App\Entity\WeightLog;
 use App\Repository\NutritionLogRepository;
 use App\Repository\WeightLogRepository;
+use App\Repository\GoalRepository;
 use App\Repository\WorkoutSessionRepository;
 use App\Repository\ProgramAssignmentRepository;
 use App\Service\MistralCoachService;
@@ -24,6 +25,7 @@ class DashboardController extends AbstractController
     public function __invoke(
         WeightLogRepository $weightRepo,
         WorkoutSessionRepository $sessionRepo,
+        GoalRepository $goalRepo,
         NutritionLogRepository $nutritionRepo,
         ProgramAssignmentRepository $assignmentRepo,
         ChartBuilderInterface $chartBuilder,
@@ -31,6 +33,10 @@ class DashboardController extends AbstractController
     ): Response {
         /** @var User $user */
         $user = $this->getUser();
+
+        // Objectif actif
+        $goals = $goalRepo->findOpenForUser($user);
+        $activeGoal = $goals[0] ?? null;
 
         // 1. Logique Coach (On récupère les clients mais on ne fait plus de return anticipé)
         $clients = [];
@@ -64,9 +70,9 @@ class DashboardController extends AbstractController
         $activeAssignment = $assignmentRepo->findOneBy(['user' => $user, 'isActive' => true]);
 
         // --- CORRECTION DU CALCUL DE PROGRESSION ---
-        $startKg  = $startWeight ? (float) $startWeight->getWeightKg() : 121.2;
+        $startKg  = $activeGoal ? (float) $activeGoal->getStartValue() : ($startWeight ? (float) $startWeight->getWeightKg() : 121.2);
         $currentKg = $lastWeight ? (float) $lastWeight->getWeightKg() : $startKg;
-        $targetKg  = 95.0; // Poids cible
+        $targetKg  = $activeGoal ? (float) $activeGoal->getTargetValue() : 95.0; // Poids cible
 
         // On utilise max() pour éviter les nombres négatifs
         $kilosPerdus = max(0, $startKg - $currentKg);
@@ -140,6 +146,7 @@ class DashboardController extends AbstractController
             'todayWorkout'     => $todayWorkout,
             'activeAssignment' => $activeAssignment,
             'coachAdvice'      => $coachAdvice,
+            'activeGoal'       => $activeGoal,
         ]);
     }
 }

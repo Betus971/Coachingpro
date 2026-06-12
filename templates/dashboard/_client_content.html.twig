@@ -1,5 +1,10 @@
 {# Dashboard Client — CoachPro #}
-{% set targets = {proteins: 190, carbs: 270, fats: 75, kcal: 2700} %}
+{% set targets = {
+  proteins: activeGoal is defined and activeGoal and activeGoal.targetProteinsG ? activeGoal.targetProteinsG : 190,
+  carbs:    activeGoal is defined and activeGoal and activeGoal.targetCarbsG    ? activeGoal.targetCarbsG    : 270,
+  fats:     activeGoal is defined and activeGoal and activeGoal.targetFatsG     ? activeGoal.targetFatsG     : 75,
+  kcal:     activeGoal is defined and activeGoal and activeGoal.targetKcal      ? activeGoal.targetKcal      : 2700
+} %}
 
 {# ── EN-TÊTE ──────────────────────────────────────────────────────────────────── #}
 <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-6">

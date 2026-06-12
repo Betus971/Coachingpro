@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Service;
 
+use App\Entity\Goal;
 use App\Entity\GoalAdjustment;
 use App\Entity\User;
+use App\Repository\GoalRepository;
 use App\Repository\NutritionLogRepository;
 use App\Repository\WeightLogRepository;
 use App\Repository\WorkoutSessionRepository;
@@ -69,6 +71,7 @@ TXT;
         private readonly WeightLogRepository      $weightRepo,
         private readonly WorkoutSessionRepository $sessionRepo,
         private readonly NutritionLogRepository   $nutritionRepo,
+        private readonly GoalRepository           $goalRepo,
         private readonly string                   $mistralApiKey,
     ) {}
 
@@ -268,14 +271,77 @@ PROMPT;
 
     // ─── Contexte utilisateur ─────────────────────────────────────────────────
 
+    /** Récupère le Goal actif de l'utilisateur (cache interne par requête). */
+    private function getActiveGoal(User $user): ?Goal
+    {
+        $goals = $this->goalRepo->findOpenForUser($user);
+        return $goals[0] ?? null;
+    }
+
+    /** Génère le bloc de contexte "OBJECTIF ACTIF" pour les prompts. */
+    private function buildGoalContext(User $user): string
+    {
+        $goal = $this->getActiveGoal($user);
+        if (!$goal) {
+            return 'Aucun objectif défini.';
+        }
+
+        $mode = match ($goal->getMode()->value) {
+            'fixed_deadline' => 'Échéance fixe (rythme ajustable)',
+            'fixed_rate'     => 'Rythme fixe (échéance ajustable)',
+            'fixed_target'   => 'Cible fixe (recomposition)',
+            default          => $goal->getMode()->value,
+        };
+
+        $lines = [
+            sprintf('- Type : %s', str_replace('_', ' ', $goal->getType()->value)),
+            sprintf('- Cible : %s kg (depuis %s kg)', $goal->getTargetValue(), $goal->getStartValue()),
+            sprintf('- Mode : %s', $mode),
+        ];
+
+        if ($goal->getWeeklyRate()) {
+            $lines[] = sprintf('- Rythme cible : %s kg/sem', $goal->getWeeklyRate());
+        }
+        $lines[] = sprintf('- Échéance : %s', $goal->getTargetDate()->format('d/m/Y'));
+        $lines[] = sprintf('- Statut : %s', $goal->getStatus()->value);
+
+        if ($goal->getTargetKcal()) {
+            $lines[] = sprintf('- Cibles nutrition : %d kcal | %dg P | %dg G | %dg L',
+                $goal->getTargetKcal(),
+                $goal->getTargetProteinsG() ?? 0,
+                $goal->getTargetCarbsG() ?? 0,
+                $goal->getTargetFatsG() ?? 0,
+            );
+        }
+
+        // Derniers ajustements (max 3)
+        $adjustments = $goal->getAdjustments()->slice(0, 3);
+        if (!empty($adjustments)) {
+            $lines[] = '- Derniers ajustements :';
+            foreach ($adjustments as $adj) {
+                $lines[] = sprintf('  · %s — %s : %s → %s (%s)',
+                    $adj->getCreatedAt()->format('d/m'),
+                    $adj->getDimension(),
+                    $adj->getPreviousValue() ?? '?',
+                    $adj->getNewValue() ?? '?',
+                    $adj->getReason() ?? '',
+                );
+            }
+        }
+
+        return implode("\n", $lines);
+    }
+
     private function buildUserContext(User $user): string
     {
         $weightLogs  = $this->weightRepo->findBy(['user' => $user], ['loggedOn' => 'DESC'], 5);
         $startWeight = $this->weightRepo->findOneBy(['user' => $user], ['loggedOn' => 'ASC']);
         $lastWeight  = $weightLogs[0] ?? null;
+        $goal        = $this->getActiveGoal($user);
 
         $currentKg = $lastWeight  ? (float) $lastWeight->getWeightKg()  : 0.0;
-        $startKg   = $startWeight ? (float) $startWeight->getWeightKg() : 121.2;
+        $startKg   = $goal ? (float) $goal->getStartValue() : ($startWeight ? (float) $startWeight->getWeightKg() : 121.2);
+        $targetKg  = $goal ? (float) $goal->getTargetValue() : 95.0;
         $lost      = round($startKg - $currentKg, 1);
 
         $weightHistory = empty($weightLogs)
@@ -306,14 +372,18 @@ PROMPT;
             )
             : 'Non renseignée aujourd\'hui.';
 
-        $guardrails = self::GUARDRAILS;
+        $guardrails  = self::GUARDRAILS;
+        $goalContext = $this->buildGoalContext($user);
 
         return <<<PROMPT
 Tu es un coach sportif et nutritionnel expert, personnel et bienveillant. Tu réponds en français, de manière directe et motivante. Tu adaptes tes réponses au profil de l'utilisateur ci-dessous.
 {$guardrails}
 
 PROFIL UTILISATEUR :
-- Objectif : perdre du poids de {$startKg} kg → 95 kg
+OBJECTIF ACTIF :
+{$goalContext}
+
+- Objectif : perdre du poids de {$startKg} kg → {$targetKg} kg
 - Poids actuel : {$currentKg} kg
 - Kilos perdus depuis le début : {$lost} kg
 - Historique poids récent : {$weightHistory}
@@ -344,9 +414,11 @@ PROMPT;
             return null;
         }
 
+        $goal          = $this->getActiveGoal($user);
         $currentWeight = (float) $logs[0]->getWeightKg();
         $startWeight   = $this->weightRepo->findOneBy(['user' => $user], ['loggedOn' => 'ASC']);
-        $startKg       = $startWeight ? (float) $startWeight->getWeightKg() : 121.2;
+        $startKg       = $goal ? (float) $goal->getStartValue() : ($startWeight ? (float) $startWeight->getWeightKg() : 121.2);
+        $targetKg      = $goal ? (float) $goal->getTargetValue() : 95.0;
         $lost          = round($startKg - $currentWeight, 1);
 
         $weightHistory = implode(', ', array_map(
@@ -362,11 +434,16 @@ PROMPT;
             ? sprintf('%d kcal | P: %dg | G: %dg | L: %dg', $todayNutrition->getKcal(), $todayNutrition->getProteinsG(), $todayNutrition->getCarbsG(), $todayNutrition->getFatsG())
             : 'Pas encore renseignée aujourd\'hui.';
 
+        $goalContext = $this->buildGoalContext($user);
+
         return <<<PROMPT
 Tu es un coach sportif et nutritionnel expert. Réponds en français, de façon directe et motivante.
 
 PROFIL UTILISATEUR :
-- Objectif : perdre du poids de {$startKg} kg → 95 kg
+OBJECTIF ACTIF :
+{$goalContext}
+
+- Objectif : perdre du poids de {$startKg} kg → {$targetKg} kg
 - Poids actuel : {$currentWeight} kg
 - Poids perdu depuis le début : {$lost} kg
 - Historique récent : {$weightHistory}
@@ -390,6 +467,8 @@ PROMPT;
             return null;
         }
 
+        $goal     = $this->getActiveGoal($user);
+        $targetKg = $goal ? (float) $goal->getTargetValue() : 95.0;
         $current  = (float) $logs[0]->getWeightKg();
         $previous = (float) $logs[1]->getWeightKg();
         $delta    = round($current - $previous, 1);
@@ -410,9 +489,13 @@ PROMPT;
         $latestMuscle = $logs[0]->getMuscleKg();
         $fatLine      = $latestFat    ? "Taux de graisse actuel : {$latestFat}%"         : '';
         $muscleLine   = $latestMuscle ? "Masse musculaire actuelle : {$latestMuscle} kg"  : '';
+        $goalContext  = $this->buildGoalContext($user);
 
         return <<<PROMPT
 Tu es un coach spécialisé en composition corporelle. Réponds en français, de façon précise et encourageante.
+
+OBJECTIF ACTIF :
+{$goalContext}
 
 DONNÉES POIDS & COMPOSITION :
 {$history}
@@ -420,7 +503,7 @@ DONNÉES POIDS & COMPOSITION :
 Variation depuis la dernière pesée : {$delta} kg
 {$fatLine}
 {$muscleLine}
-Objectif : atteindre 95 kg
+Objectif : atteindre {$targetKg} kg
 
 Analyse en 3 points :
 1. Tendance du poids sur les dernières pesées (vitesse de perte, régularité)
