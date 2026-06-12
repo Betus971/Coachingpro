@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Service;
 
 use App\Entity\Goal;
+use App\Coach\CoachActionExecutor;
 use App\Entity\GoalAdjustment;
 use App\Entity\User;
+use App\Enum\CoachActionType;
 use App\Repository\GoalRepository;
 use App\Repository\NutritionLogRepository;
 use App\Repository\WeightLogRepository;
@@ -65,6 +67,58 @@ TXT;
         'avocat', 'tribunal', 'porter plainte', 'contrat de travail', 'divorce',
     ];
 
+    /**
+     * Outils que l'IA peut PROPOSER (jamais exécuter directement). Quand le modèle
+     * en appelle un, on valide via CoachActionExecutor et on demande confirmation.
+     */
+    private const TOOLS = [
+        [
+            'type' => 'function',
+            'function' => [
+                'name' => 'update_program_duration',
+                'description' => "Change la durée du programme d'entraînement actif (en semaines). À utiliser quand l'utilisateur veut allonger ou raccourcir son programme, ex: passer de 36 à 40 semaines.",
+                'parameters' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'weeks' => ['type' => 'integer', 'description' => 'Nouvelle durée en semaines (1 à 104).'],
+                    ],
+                    'required' => ['weeks'],
+                ],
+            ],
+        ],
+        [
+            'type' => 'function',
+            'function' => [
+                'name' => 'update_goal',
+                'description' => "Met à jour l'objectif actif : cible de poids (kg), échéance, et/ou rythme hebdomadaire.",
+                'parameters' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'target_value' => ['type' => 'number', 'description' => 'Nouvelle cible en kg.'],
+                        'target_date' => ['type' => 'string', 'description' => 'Nouvelle échéance, format YYYY-MM-DD.'],
+                        'weekly_rate' => ['type' => 'number', 'description' => 'Rythme cible en kg/semaine.'],
+                    ],
+                ],
+            ],
+        ],
+        [
+            'type' => 'function',
+            'function' => [
+                'name' => 'update_nutrition_targets',
+                'description' => "Fixe les cibles nutritionnelles de l'objectif actif : calories et macros (grammes).",
+                'parameters' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'kcal' => ['type' => 'integer'],
+                        'proteins_g' => ['type' => 'integer'],
+                        'carbs_g' => ['type' => 'integer'],
+                        'fats_g' => ['type' => 'integer'],
+                    ],
+                ],
+            ],
+        ],
+    ];
+
     public function __construct(
         private readonly HttpClientInterface      $httpClient,
         private readonly CacheItemPoolInterface   $cache,
@@ -72,7 +126,8 @@ TXT;
         private readonly WorkoutSessionRepository $sessionRepo,
         private readonly NutritionLogRepository   $nutritionRepo,
         private readonly GoalRepository           $goalRepo,
-        private readonly string                   $mistralApiKey,
+        private readonly CoachActionExecutor      $actionExecutor,
+        private readonly ?string                  $mistralApiKey,
     ) {}
 
     // ─── Points d'entrée publics ───────────────────────────────────────────────
@@ -82,7 +137,7 @@ TXT;
      *
      * @param array<array{role: string, content: string}> $history  Historique précédent (role: 'user'|'assistant')
      */
-    public function chat(User $user, string $message, array $history = []): string
+    public function chat(User $user, string $message, array $history = [], ?array &$proposedAction = null): string
     {
         if (empty($this->mistralApiKey)) {
             return 'Désolé, le service IA n\'est pas configuré.';
@@ -121,6 +176,8 @@ TXT;
                     'messages'    => $messages,
                     'temperature' => 0.8,
                     'max_tokens'  => 1024,
+                    'tools'       => self::TOOLS,
+                    'tool_choice' => 'auto',
                 ],
                 'timeout' => 20,
             ]);
@@ -130,8 +187,28 @@ TXT;
                 return 'Mon cerveau IA est en pause (quota atteint). Réessaie dans quelques instants.';
             }
 
-            $data = $response->toArray();
-            return $data['choices'][0]['message']['content']
+            $data   = $response->toArray();
+            $choice = $data['choices'][0]['message'] ?? [];
+
+            // L'IA propose une action structurée ? On la VALIDE (sans l'appliquer) et on
+            // renvoie un résumé : le ChatController la met en attente de confirmation.
+            if (!empty($choice['tool_calls'])) {
+                $fn   = $choice['tool_calls'][0]['function'] ?? [];
+                $type = CoachActionType::tryFrom($fn['name'] ?? '');
+                $args = json_decode($fn['arguments'] ?? '{}', true);
+                if ($type !== null && is_array($args)) {
+                    try {
+                        $summary = $this->actionExecutor->describe($user, $type, $args);
+                        $proposedAction = ['type' => $type->value, 'payload' => $args, 'summary' => $summary];
+
+                        return $summary . "\n\nTu confirmes ? (réponds « oui » ou « annule »)";
+                    } catch (\InvalidArgumentException $e) {
+                        return 'Je ne peux pas faire ça : ' . $e->getMessage();
+                    }
+                }
+            }
+
+            return $choice['content']
                 ?? 'Je n\'ai pas pu générer de réponse, réessaie.';
 
         } catch (\Throwable $e) {
