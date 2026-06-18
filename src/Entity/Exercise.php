@@ -24,6 +24,7 @@ use Symfony\Component\Validator\Constraints as Assert;
  */
 #[ORM\Entity(repositoryClass: ExerciseRepository::class)]
 #[ORM\Index(columns: ['muscle_group'], name: 'idx_exercise_muscle')]
+#[ORM\Index(columns: ['external_id'], name: 'idx_exercise_external')]
 #[ApiResource(
     operations: [
         new GetCollection(),
@@ -74,6 +75,16 @@ class Exercise
     #[Groups(['exercise:read', 'exercise:write'])]
     private ?string $description = null;
 
+    /** URL de l'illustration (catalogue Free Exercise DB, domaine public, via CDN). */
+    #[ORM\Column(length: 255, nullable: true)]
+    #[Groups(['exercise:read', 'exercise:write'])]
+    private ?string $imageUrl = null;
+
+    /** Identifiant source (ex: Free Exercise DB) pour un import idempotent. */
+    #[ORM\Column(length: 100, nullable: true)]
+    #[Groups(['exercise:read'])]
+    private ?string $externalId = null;
+
     /**
      * Null = exercice système (visible par tous). Sinon = privé au coach et ses clients.
      */
@@ -108,6 +119,10 @@ class Exercise
     public function setEquipment(?string $e): self { $this->equipment = $e; return $this; }
     public function getDescription(): ?string { return $this->description; }
     public function setDescription(?string $d): self { $this->description = $d; return $this; }
+    public function getImageUrl(): ?string { return $this->imageUrl; }
+    public function setImageUrl(?string $u): self { $this->imageUrl = $u; return $this; }
+    public function getExternalId(): ?string { return $this->externalId; }
+    public function setExternalId(?string $e): self { $this->externalId = $e; return $this; }
     public function getCreatedBy(): ?User { return $this->createdBy; }
     public function setCreatedBy(?User $u): self { $this->createdBy = $u; return $this; }
 }
