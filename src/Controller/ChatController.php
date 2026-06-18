@@ -16,6 +16,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\RateLimiter\RateLimiterFactory;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
@@ -53,9 +54,15 @@ class ChatController extends AbstractController
         MistralCoachService $coach,
         CoachActionExecutor $actionExecutor,
         EntityManagerInterface $em,
+        RateLimiterFactory $chatSendLimiter,
     ): JsonResponse {
         /** @var User $user */
         $user = $this->getUser();
+
+        $limiter = $chatSendLimiter->create($user->getId()->toRfc4122());
+        if (!$limiter->consume()->isAccepted()) {
+            return $this->json(['error' => 'Trop de messages, attends une minute.'], Response::HTTP_TOO_MANY_REQUESTS);
+        }
 
         $data = json_decode($request->getContent(), true);
         if (!is_array($data)) {
@@ -145,7 +152,7 @@ class ChatController extends AbstractController
         $modelMsg = new ChatMessage($user, 'model', $aiResponse);
         $em->persist($modelMsg);
         $em->flush();
-        $repo->pruneOldMessages($user, 100);
+        $repo->pruneOldMessages($user);
 
         return $this->json([
             'role'      => 'model',
