@@ -79,15 +79,77 @@ class WorkoutSessionController extends AbstractController
 
         $em->persist($session);
 
-        // Sets: tableau d'exercices envoyés depuis le formulaire dynamique
-        // Format: sets[0][exercise_id], sets[0][set_number], sets[0][reps], sets[0][weight_kg], sets[0][rpe], sets[0][is_warmup]
-        $setsData = $request->request->all('sets');
-        foreach ($setsData as $index => $setData) {
-            if (empty($setData['exercise_id'])) continue;
+        $this->hydrateSets($session, $request, $exerciseRepo, $em);
 
+        $em->flush();
+
+        $gamificationStatus = $gamification->updateStreak($user);
+        if ($gamificationStatus['streak_updated'] && $gamificationStatus['message']) {
+            $this->addFlash('success', $gamificationStatus['message']);
+        }
+
+        $this->addFlash('success', 'Séance enregistrée ✓');
+        return $this->redirectToRoute('app_session_show', ['id' => $session->getId()]);
+    }
+
+    #[Route('/{id}/edit', name: 'edit', methods: ['GET'])]
+    public function edit(WorkoutSession $session, ExerciseRepository $exerciseRepo, WorkoutTemplateRepository $templateRepo): Response
+    {
+        $this->denyAccessUnlessGranted('EDIT', $session);
+
+        return $this->render('session/new.html.twig', [
+            'session'   => $session,
+            'exercises' => $exerciseRepo->findBy([], ['name' => 'ASC']),
+            'templates' => $templateRepo->findBy([], ['dayOfWeek' => 'ASC']),
+        ]);
+    }
+
+    #[Route('/{id}/edit', name: 'update', methods: ['POST'])]
+    public function update(
+        WorkoutSession $session,
+        Request $request,
+        EntityManagerInterface $em,
+        ExerciseRepository $exerciseRepo,
+        WorkoutTemplateRepository $templateRepo,
+    ): Response {
+        $this->denyAccessUnlessGranted('EDIT', $session);
+
+        $session->setName($request->request->get('name', 'Séance'));
+        $session->setPerformedAt(new \DateTimeImmutable($request->request->get('performed_at', 'now')));
+        $session->setDurationMinutes($request->request->get('duration_minutes') !== '' ? (int) $request->request->get('duration_minutes') : null);
+        $session->setRpe($request->request->get('rpe') !== '' ? (int) $request->request->get('rpe') : null);
+        $session->setNotes($request->request->get('notes'));
+
+        $templateId = $request->request->get('source_template_id');
+        $session->setSourceTemplate($templateId ? $templateRepo->find($templateId) : null);
+
+        // Remplace les séries : on supprime les anciennes, on recrée depuis le formulaire.
+        foreach ($session->getSets()->toArray() as $old) {
+            $session->getSets()->removeElement($old);
+            $em->remove($old);
+        }
+        $this->hydrateSets($session, $request, $exerciseRepo, $em);
+
+        $em->flush();
+
+        $this->addFlash('success', 'Séance mise à jour ✓');
+        return $this->redirectToRoute('app_session_show', ['id' => $session->getId()]);
+    }
+
+    /**
+     * Crée les WorkoutSet à partir du formulaire dynamique.
+     * Format : sets[i][exercise_id|exercise_position|set_number|reps|weight_kg|rpe|is_warmup].
+     */
+    private function hydrateSets(WorkoutSession $session, Request $request, ExerciseRepository $exerciseRepo, EntityManagerInterface $em): void
+    {
+        foreach ($request->request->all('sets') as $index => $setData) {
+            if (empty($setData['exercise_id'])) {
+                continue;
+            }
             $exercise = $exerciseRepo->find($setData['exercise_id']);
-            if (!$exercise) continue;
-
+            if (!$exercise) {
+                continue;
+            }
             $set = new WorkoutSet();
             $set->setSession($session);
             $set->setExercise($exercise);
@@ -99,16 +161,6 @@ class WorkoutSessionController extends AbstractController
             $set->setIsWarmup(!empty($setData['is_warmup']));
             $em->persist($set);
         }
-
-        $em->flush();
-
-        $gamificationStatus = $gamification->updateStreak($user);
-        if ($gamificationStatus['streak_updated'] && $gamificationStatus['message']) {
-            $this->addFlash('success', $gamificationStatus['message']);
-        }
-
-        $this->addFlash('success', 'Séance enregistrée ✓');
-        return $this->redirectToRoute('app_session_show', ['id' => $session->getId()]);
     }
 
     #[Route('/play/{id}', name: 'play', methods: ['GET'])]
