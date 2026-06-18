@@ -4,8 +4,9 @@
 {% block body %}
 <div class="px-6 md:px-8 py-8">
 
-  <div class="mb-6">
+  <div class="mb-6 flex items-center justify-between">
     <a href="{{ path('app_session_index') }}" class="text-xs text-muted hover:text-primary tracking-widest uppercase transition-colors">← Retour</a>
+    <a href="{{ path('app_session_edit', {id: session.id}) }}" class="btn btn-outline btn-primary btn-sm font-display tracking-widest">✎ Éditer</a>
   </div>
 
   <div class="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-8">

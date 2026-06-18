@@ -1,15 +1,16 @@
 {% extends 'base.html.twig' %}
-{% block title %}Nouvelle séance — CoachPro{% endblock %}
+{% set isEdit = session is defined and session %}
+{% block title %}{{ isEdit ? 'Modifier la séance' : 'Nouvelle séance' }} — CoachPro{% endblock %}
 
 {% block body %}
 <div class="px-6 md:px-8 py-8 max-w-3xl">
 
   <div class="mb-8">
     <div class="section-tag mb-3">Training</div>
-    <h1 class="font-display text-4xl md:text-5xl">LOGGER UNE SÉANCE</h1>
+    <h1 class="font-display text-4xl md:text-5xl">{{ isEdit ? 'MODIFIER LA SÉANCE' : 'LOGGER UNE SÉANCE' }}</h1>
   </div>
 
-  <form action="{{ path('app_session_create') }}" method="post" id="session-form">
+  <form action="{{ isEdit ? path('app_session_update', {id: session.id}) : path('app_session_create') }}" method="post" id="session-form">
 
     {# ── Infos séance ────────────────────────────────────────────────────── #}
     <div class="card-coach p-6 mb-6">
@@ -20,13 +21,15 @@
             <span class="label-text text-xs tracking-widest uppercase text-muted">Nom de la séance</span>
           </label>
           <input type="text" name="name" required placeholder="Push — Lundi"
+                 value="{{ isEdit ? session.name : '' }}"
                  class="input input-bordered bg-base-300 border-neutral focus:border-primary">
         </div>
         <div class="form-control">
           <label class="label pb-1">
             <span class="label-text text-xs tracking-widest uppercase text-muted">Date & heure</span>
           </label>
-          <input type="datetime-local" name="performed_at" value="{{ 'now'|date('Y-m-d\\TH:i') }}"
+          <input type="datetime-local" name="performed_at"
+                 value="{{ isEdit ? session.performedAt|date('Y-m-d\\TH:i') : 'now'|date('Y-m-d\\TH:i') }}"
                  class="input input-bordered bg-base-300 border-neutral focus:border-primary">
         </div>
         <div class="form-control">
@@ -34,6 +37,7 @@
             <span class="label-text text-xs tracking-widest uppercase text-muted">Durée (min)</span>
           </label>
           <input type="number" name="duration_minutes" min="0" max="300" placeholder="65"
+                 value="{{ isEdit ? session.durationMinutes : '' }}"
                  class="input input-bordered bg-base-300 border-neutral focus:border-primary">
         </div>
         <div class="form-control">
@@ -41,6 +45,7 @@
             <span class="label-text text-xs tracking-widest uppercase text-muted">RPE global (1–10)</span>
           </label>
           <input type="number" name="rpe" min="1" max="10" placeholder="7"
+                 value="{{ isEdit ? session.rpe : '' }}"
                  class="input input-bordered bg-base-300 border-neutral focus:border-primary">
         </div>
         <div class="form-control">
@@ -51,7 +56,7 @@
                   class="select select-bordered bg-base-300 border-neutral focus:border-primary">
             <option value="">— Freestyle —</option>
             {% for template in templates %}
-              <option value="{{ template.id }}">{{ template.name }}</option>
+              <option value="{{ template.id }}" {{ isEdit and session.sourceTemplate and session.sourceTemplate.id == template.id ? 'selected' : '' }}>{{ template.name }}</option>
             {% endfor %}
           </select>
         </div>
@@ -60,7 +65,7 @@
             <span class="label-text text-xs tracking-widest uppercase text-muted">Notes</span>
           </label>
           <textarea name="notes" rows="2" placeholder="Bon sommeil, bonne énergie…"
-                    class="textarea textarea-bordered bg-base-300 border-neutral focus:border-primary"></textarea>
+                    class="textarea textarea-bordered bg-base-300 border-neutral focus:border-primary">{{ isEdit ? session.notes : '' }}</textarea>
         </div>
       </div>
     </div>
@@ -75,7 +80,6 @@
       </div>
 
       <div id="sets-container">
-        {# Les sets sont injectés dynamiquement #}
         <div class="text-sm text-muted text-center py-6" id="empty-msg">
           Aucune série ajoutée. Clique sur "+ AJOUTER SÉRIE".
         </div>
@@ -84,66 +88,99 @@
 
     <div class="flex gap-4">
       <button type="submit" class="btn btn-primary flex-1 font-display text-lg tracking-widest">
-        ENREGISTRER LA SÉANCE
+        {{ isEdit ? 'METTRE À JOUR' : 'ENREGISTRER LA SÉANCE' }}
       </button>
-      <a href="{{ path('app_session_index') }}" class="btn btn-ghost">Annuler</a>
+      <a href="{{ isEdit ? path('app_session_show', {id: session.id}) : path('app_session_index') }}" class="btn btn-ghost">Annuler</a>
     </div>
   </form>
 </div>
 
-{# Exercises data for JS #}
+{# Liste partagée des exercices pour l'autocomplétion (tape pour filtrer) #}
+<datalist id="exercise-options">
+  {% for ex in exercises %}<option value="{{ ex.name|e('html_attr') }}">{% endfor %}
+</datalist>
+
 <script>
 const EXERCISES = [
-  {% for ex in exercises %}
-    {id: "{{ ex.id }}", name: "{{ ex.name|e('js') }}", muscle: "{{ ex.muscleGroup }}"},
+  {% for ex in exercises %}{id: "{{ ex.id }}", name: "{{ ex.name|e('js') }}"},
   {% endfor %}
+];
+const EX_BY_NAME = {};
+EXERCISES.forEach(e => { EX_BY_NAME[e.name.toLowerCase()] = e; });
+
+{# Séries existantes (mode édition) #}
+const EXISTING_SETS = [
+  {% if isEdit %}{% for s in session.sets %}{
+    exercise_name: "{{ s.exercise.name|e('js') }}",
+    set_number: {{ s.setNumber }},
+    reps: {{ s.reps }},
+    weight_kg: "{{ s.weightKg is null ? '' : s.weightKg }}",
+    rpe: "{{ s.rpe is null ? '' : s.rpe }}",
+    is_warmup: {{ s.isWarmup ? 'true' : 'false' }}
+  },
+  {% endfor %}{% endif %}
 ];
 
 let setIndex = 0;
-let exercisePositions = {};
+const positionByName = {};
 
-document.getElementById('add-set').addEventListener('click', function() {
+function positionFor(name) {
+  if (positionByName[name] === undefined) {
+    positionByName[name] = Object.keys(positionByName).length;
+  }
+  return positionByName[name];
+}
+
+function resolveExercise(input, idx) {
+  const ex = EX_BY_NAME[input.value.trim().toLowerCase()];
+  document.getElementById('exid-' + idx).value = ex ? ex.id : '';
+  if (ex) {
+    document.getElementById('pos-' + idx).value = positionFor(ex.name);
+  }
+  input.classList.toggle('border-error', !ex && input.value.trim() !== '');
+}
+
+function addSet(prefill) {
   document.getElementById('empty-msg')?.remove();
-
+  const i = setIndex;
   const container = document.getElementById('sets-container');
   const div = document.createElement('div');
   div.className = 'border border-neutral rounded-lg p-4 mb-3 relative';
-  div.dataset.index = setIndex;
+  div.dataset.index = i;
 
   div.innerHTML = `
     <div class="grid grid-cols-12 gap-2 items-end">
       <div class="col-span-12 md:col-span-5">
         <div class="text-xs tracking-widest uppercase text-muted mb-1">Exercice</div>
-        <select name="sets[${setIndex}][exercise_id]" required onchange="updatePosition(this, ${setIndex})"
-                class="select select-bordered select-sm bg-base-300 border-neutral focus:border-primary w-full text-xs">
-          <option value="">— Choisir —</option>
-          ${EXERCISES.map(e => `<option value="${e.id}">${e.name}</option>`).join('')}
-        </select>
-        <input type="hidden" name="sets[${setIndex}][exercise_position]" id="pos-${setIndex}" value="0">
+        <input type="text" list="exercise-options" autocomplete="off" placeholder="Tape pour chercher…"
+               oninput="resolveExercise(this, ${i})"
+               class="input input-sm input-bordered bg-base-300 border-neutral focus:border-primary w-full text-xs">
+        <input type="hidden" name="sets[${i}][exercise_id]" id="exid-${i}" required>
+        <input type="hidden" name="sets[${i}][exercise_position]" id="pos-${i}" value="0">
       </div>
       <div class="col-span-4 md:col-span-1">
         <div class="text-xs tracking-widest uppercase text-muted mb-1">Série</div>
-        <input type="number" name="sets[${setIndex}][set_number]" value="1" min="1" max="20"
+        <input type="number" name="sets[${i}][set_number]" value="1" min="1" max="20"
                class="input input-sm input-bordered bg-base-300 border-neutral w-full text-center">
       </div>
       <div class="col-span-4 md:col-span-1">
         <div class="text-xs tracking-widest uppercase text-muted mb-1">Reps</div>
-        <input type="number" name="sets[${setIndex}][reps]" value="0" min="0"
+        <input type="number" name="sets[${i}][reps]" value="0" min="0"
                class="input input-sm input-bordered bg-base-300 border-neutral w-full text-center" required>
       </div>
       <div class="col-span-4 md:col-span-2">
         <div class="text-xs tracking-widest uppercase text-muted mb-1">Poids (kg)</div>
-        <input type="number" name="sets[${setIndex}][weight_kg]" step="0.5" min="0" placeholder="—"
+        <input type="number" name="sets[${i}][weight_kg]" step="0.5" min="0" placeholder="—"
                class="input input-sm input-bordered bg-base-300 border-neutral w-full text-center">
       </div>
       <div class="col-span-4 md:col-span-1">
         <div class="text-xs tracking-widest uppercase text-muted mb-1">RPE</div>
-        <input type="number" name="sets[${setIndex}][rpe]" min="1" max="10" placeholder="—"
+        <input type="number" name="sets[${i}][rpe]" min="1" max="10" placeholder="—"
                class="input input-sm input-bordered bg-base-300 border-neutral w-full text-center">
       </div>
       <div class="col-span-4 md:col-span-1 text-center">
         <div class="text-xs tracking-widest uppercase text-muted mb-1">Échauff.</div>
-        <input type="checkbox" name="sets[${setIndex}][is_warmup]" value="1"
+        <input type="checkbox" name="sets[${i}][is_warmup]" value="1"
                class="checkbox checkbox-xs checkbox-primary mt-2">
       </div>
       <div class="col-span-4 md:col-span-1 flex justify-end">
@@ -154,16 +191,24 @@ document.getElementById('add-set').addEventListener('click', function() {
   `;
 
   container.appendChild(div);
-  setIndex++;
-});
 
-let positionCounter = {};
-function updatePosition(select, idx) {
-  const name = select.options[select.selectedIndex].text;
-  if (!positionCounter[name] && positionCounter[name] !== 0) {
-    positionCounter[name] = Object.keys(positionCounter).length;
+  if (prefill) {
+    const q = (sel) => div.querySelector(sel);
+    q('input[type="text"]').value = prefill.exercise_name || '';
+    q(`input[name="sets[${i}][set_number]"]`).value = prefill.set_number ?? 1;
+    q(`input[name="sets[${i}][reps]"]`).value = prefill.reps ?? 0;
+    q(`input[name="sets[${i}][weight_kg]"]`).value = prefill.weight_kg ?? '';
+    q(`input[name="sets[${i}][rpe]"]`).value = prefill.rpe ?? '';
+    if (prefill.is_warmup) q('input[type="checkbox"]').checked = true;
+    resolveExercise(q('input[type="text"]'), i);
   }
-  document.getElementById(`pos-${idx}`).value = positionCounter[name];
+
+  setIndex++;
 }
+
+document.getElementById('add-set').addEventListener('click', () => addSet());
+
+// Pré-remplissage en mode édition
+EXISTING_SETS.forEach(s => addSet(s));
 </script>
 {% endblock %}
