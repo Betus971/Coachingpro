@@ -101,6 +101,7 @@
 </datalist>
 
 <script>
+(function () {
 const EXERCISES = [
   {% for ex in exercises %}{id: "{{ ex.id }}", name: "{{ ex.name|e('js') }}"},
   {% endfor %}
@@ -153,7 +154,7 @@ function addSet(prefill) {
       <div class="col-span-12 md:col-span-5">
         <div class="text-xs tracking-widest uppercase text-muted mb-1">Exercice</div>
         <input type="text" list="exercise-options" autocomplete="off" placeholder="Tape pour chercher…"
-               oninput="resolveExercise(this, ${i})"
+               data-exercise-input
                class="input input-sm input-bordered bg-base-300 border-neutral focus:border-primary w-full text-xs">
         <input type="hidden" name="sets[${i}][exercise_id]" id="exid-${i}" required>
         <input type="hidden" name="sets[${i}][exercise_position]" id="pos-${i}" value="0">
@@ -191,6 +192,7 @@ function addSet(prefill) {
   `;
 
   container.appendChild(div);
+  div.querySelector('[data-exercise-input]').addEventListener('input', (e) => resolveExercise(e.target, i));
 
   if (prefill) {
     const q = (sel) => div.querySelector(sel);
@@ -210,5 +212,6 @@ document.getElementById('add-set').addEventListener('click', () => addSet());
 
 // Pré-remplissage en mode édition
 EXISTING_SETS.forEach(s => addSet(s));
+})();
 </script>
 {% endblock %}
