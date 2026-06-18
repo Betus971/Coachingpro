@@ -39,30 +39,18 @@ class ChatMessageRepository extends ServiceEntityRepository
     }
 
     /**
-     * Supprime les anciens messages (garde seulement les N derniers) pour ne pas saturer la BDD.
+     * Supprime les messages vieux de plus de 7 jours.
      */
-    public function pruneOldMessages(User $user, int $keep = 100): void
+    public function pruneOldMessages(User $user): void
     {
-        // Récupère les IDs à conserver
-        $ids = $this->createQueryBuilder('m')
-            ->select('m.id')
-            ->where('m.user = :user')
-            ->setParameter('user', $user)
-            ->orderBy('m.createdAt', 'DESC')
-            ->setMaxResults($keep)
-            ->getQuery()
-            ->getSingleColumnResult();
-
-        if (empty($ids)) {
-            return;
-        }
+        $oneWeekAgo = new \DateTimeImmutable('-7 days');
 
         $this->createQueryBuilder('m')
             ->delete()
             ->where('m.user = :user')
-            ->andWhere('m.id NOT IN (:ids)')
+            ->andWhere('m.createdAt < :date')
             ->setParameter('user', $user)
-            ->setParameter('ids', $ids)
+            ->setParameter('date', $oneWeekAgo)
             ->getQuery()
             ->execute();
     }
