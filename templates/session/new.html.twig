@@ -71,6 +71,31 @@
     </div>
 
     {# ── Sets ────────────────────────────────────────────────────────────── #}
+    {# ── Ajout rapide : favoris + récents ───────────────────────────────── #}
+    {% set favIds = (favorites is defined ? favorites : [])|map(ex => ex.id ~ '') %}
+    {% if (favorites is defined and favorites) or (recents is defined and recents) %}
+    <div class="card-coach p-4 mb-4">
+      <div class="text-xs tracking-widest uppercase text-muted mb-2">Ajout rapide</div>
+      <div class="flex flex-wrap gap-2" id="quick-pick">
+        {% for ex in favorites %}
+          <span class="badge badge-lg gap-2 border-warning text-warning">
+            <button type="button" class="quick-add" data-name="{{ ex.name|e('html_attr') }}">{{ ex.name }}</button>
+            <button type="button" class="quick-fav" data-id="{{ ex.id }}" title="Retirer des favoris">★</button>
+          </span>
+        {% endfor %}
+        {% for ex in (recents is defined ? recents : []) %}
+          {% if (ex.id ~ '') not in favIds %}
+          <span class="badge badge-lg badge-ghost gap-2">
+            <button type="button" class="quick-add" data-name="{{ ex.name|e('html_attr') }}">{{ ex.name }}</button>
+            <button type="button" class="quick-fav" data-id="{{ ex.id }}" title="Ajouter aux favoris">☆</button>
+          </span>
+          {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    {# ── Sets ────────────────────────────────────────────────────────────── #}
     <div class="card-coach p-6 mb-6">
       <div class="flex items-center justify-between mb-4">
         <h2 class="font-display text-xl text-muted-strong tracking-widest">SÉRIES</h2>
@@ -212,6 +237,25 @@ document.getElementById('add-set').addEventListener('click', () => addSet());
 
 // Pré-remplissage en mode édition
 EXISTING_SETS.forEach(s => addSet(s));
+
+// Ajout rapide : favoris + récents
+const quickPick = document.getElementById('quick-pick');
+if (quickPick) {
+  quickPick.addEventListener('click', async (e) => {
+    const add = e.target.closest('.quick-add');
+    if (add) { addSet({ exercise_name: add.dataset.name }); return; }
+    const fav = e.target.closest('.quick-fav');
+    if (fav) {
+      try {
+        const res = await fetch('/exercices/' + fav.dataset.id + '/favori', {
+          method: 'POST', headers: { 'X-Requested-With': 'fetch' }
+        });
+        const data = await res.json();
+        fav.textContent = data.favorite ? '★' : '☆';
+      } catch (_) {}
+    }
+  });
+}
 })();
 </script>
 {% endblock %}

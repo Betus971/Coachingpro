@@ -9,6 +9,7 @@ use App\Entity\User;
 use App\Entity\WorkoutSession;
 use App\Entity\WorkoutSet;
 use App\Repository\ExerciseRepository;
+use App\Repository\FavoriteExerciseRepository;
 use App\Repository\WorkoutSessionRepository;
 use App\Repository\WorkoutTemplateRepository;
 use App\Entity\WorkoutTemplate;
@@ -37,18 +38,16 @@ class WorkoutSessionController extends AbstractController
     }
 
     #[Route('/new', name: 'new', methods: ['GET'])]
-    public function new(ExerciseRepository $exerciseRepo, WorkoutTemplateRepository $templateRepo): Response
+    public function new(ExerciseRepository $exerciseRepo, WorkoutTemplateRepository $templateRepo, FavoriteExerciseRepository $favRepo): Response
     {
-        $exercises = $exerciseRepo->findBy([], ['name' => 'ASC']);
-
-        // Templates du programme actif pour pré-remplir
         /** @var User $user */
         $user = $this->getUser();
-        $templates = $templateRepo->findBy([], ['dayOfWeek' => 'ASC']);
 
         return $this->render('session/new.html.twig', [
-            'exercises' => $exercises,
-            'templates' => $templates,
+            'exercises' => $exerciseRepo->findBy([], ['name' => 'ASC']),
+            'templates' => $templateRepo->findBy([], ['dayOfWeek' => 'ASC']),
+            'favorites' => $favRepo->findExercisesForUser($user),
+            'recents'   => $exerciseRepo->findMostUsedForUser($user, 8),
         ]);
     }
 
@@ -93,14 +92,18 @@ class WorkoutSessionController extends AbstractController
     }
 
     #[Route('/{id}/edit', name: 'edit', methods: ['GET'])]
-    public function edit(WorkoutSession $session, ExerciseRepository $exerciseRepo, WorkoutTemplateRepository $templateRepo): Response
+    public function edit(WorkoutSession $session, ExerciseRepository $exerciseRepo, WorkoutTemplateRepository $templateRepo, FavoriteExerciseRepository $favRepo): Response
     {
         $this->denyAccessUnlessGranted('EDIT', $session);
+        /** @var User $user */
+        $user = $this->getUser();
 
         return $this->render('session/new.html.twig', [
             'session'   => $session,
             'exercises' => $exerciseRepo->findBy([], ['name' => 'ASC']),
             'templates' => $templateRepo->findBy([], ['dayOfWeek' => 'ASC']),
+            'favorites' => $favRepo->findExercisesForUser($user),
+            'recents'   => $exerciseRepo->findMostUsedForUser($user, 8),
         ]);
     }
 
