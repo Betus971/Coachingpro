@@ -14,7 +14,13 @@
       <div class="section-tag mb-3">Séance</div>
       <h1 class="font-display text-4xl md:text-5xl">{{ session.name }}</h1>
       <div class="text-muted-strong mt-2 flex flex-wrap gap-4 text-sm">
-        <span>{{ session.performedAt|date('l d MMMM Y')|upper }}</span>
+        <span>{{ session.performedAt|date('l d F Y')|replace({
+          'Monday':'Lundi','Tuesday':'Mardi','Wednesday':'Mercredi','Thursday':'Jeudi',
+          'Friday':'Vendredi','Saturday':'Samedi','Sunday':'Dimanche',
+          'January':'janvier','February':'février','March':'mars','April':'avril',
+          'May':'mai','June':'juin','July':'juillet','August':'août',
+          'September':'septembre','October':'octobre','November':'novembre','December':'décembre'
+        })|upper }}</span>
         {% if session.durationMinutes %}<span>⏱ {{ session.durationMinutes }} min</span>{% endif %}
         {% if session.rpe %}<span>RPE {{ session.rpe }}/10</span>{% endif %}
       </div>
