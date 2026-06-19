@@ -26,13 +26,13 @@ class ExerciseRepository extends ServiceEntityRepository
     public function findMostUsedForUser(User $user, int $limit = 8): array
     {
         return $this->createQueryBuilder('e')
-            ->select('e')
+            ->select('e', 'COUNT(ws.id) AS HIDDEN useCount')
             ->join('App\\Entity\\WorkoutSet', 'ws', 'WITH', 'ws.exercise = e')
             ->join('ws.session', 's')
             ->andWhere('s.user = :user')
             ->setParameter('user', $user)
             ->groupBy('e.id')
-            ->orderBy('COUNT(ws.id)', 'DESC')
+            ->orderBy('useCount', 'DESC')
             ->setMaxResults($limit)
             ->getQuery()
             ->getResult();
