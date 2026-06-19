@@ -23,14 +23,16 @@ class FavoriteExerciseRepository extends ServiceEntityRepository
     /** @return Exercise[] Les exercices favoris d'un utilisateur (ordre alpha). */
     public function findExercisesForUser(User $user): array
     {
-        return $this->createQueryBuilder('f')
-            ->select('e')
+        $favorites = $this->createQueryBuilder('f')
             ->join('f.exercise', 'e')
+            ->addSelect('e')
             ->andWhere('f.user = :user')
             ->setParameter('user', $user)
             ->orderBy('e.name', 'ASC')
             ->getQuery()
             ->getResult();
+
+        return array_map(static fn (FavoriteExercise $f) => $f->getExercise(), $favorites);
     }
 
     public function findOneByUserAndExercise(User $user, Exercise $exercise): ?FavoriteExercise
