@@ -69,10 +69,10 @@ class NutritionLogController extends AbstractController
 
         $log->setUser($user);
         $log->setLoggedOn($date);
-        $log->setProteinsG((int) $request->request->get('proteins_g', 0));
-        $log->setCarbsG((int) $request->request->get('carbs_g', 0));
-        $log->setFatsG((int) $request->request->get('fats_g', 0));
-        $log->setKcal((int) $request->request->get('kcal', 0));
+        $log->setProteinsG($request->request->get('proteins_g') !== null && $request->request->get('proteins_g') !== '' ? (int) $request->request->get('proteins_g') : null);
+        $log->setCarbsG($request->request->get('carbs_g') !== null && $request->request->get('carbs_g') !== '' ? (int) $request->request->get('carbs_g') : null);
+        $log->setFatsG($request->request->get('fats_g') !== null && $request->request->get('fats_g') !== '' ? (int) $request->request->get('fats_g') : null);
+        $log->setKcal($request->request->get('kcal') !== null && $request->request->get('kcal') !== '' ? (int) $request->request->get('kcal') : null);
         $log->setFiberG($request->request->get('fiber_g') !== '' ? (int) $request->request->get('fiber_g') : null);
         $log->setWaterL($request->request->get('water_l') !== '' ? $request->request->get('water_l') : null);
         $log->setNotes($request->request->get('notes'));

@@ -56,25 +56,25 @@ class NutritionLog
     #[Groups(['nutrition:read', 'nutrition:write'])]
     private \DateTimeImmutable $loggedOn;
 
-    #[ORM\Column(type: 'smallint')]
+    #[ORM\Column(type: 'smallint', nullable: true)]
     #[Assert\Range(min: 0, max: 1000)]
     #[Groups(['nutrition:read', 'nutrition:write'])]
-    private int $proteinsG;
+    private ?int $proteinsG = null;
 
-    #[ORM\Column(type: 'smallint')]
+    #[ORM\Column(type: 'smallint', nullable: true)]
     #[Assert\Range(min: 0, max: 2000)]
     #[Groups(['nutrition:read', 'nutrition:write'])]
-    private int $carbsG;
+    private ?int $carbsG = null;
 
-    #[ORM\Column(type: 'smallint')]
+    #[ORM\Column(type: 'smallint', nullable: true)]
     #[Assert\Range(min: 0, max: 1000)]
     #[Groups(['nutrition:read', 'nutrition:write'])]
-    private int $fatsG;
+    private ?int $fatsG = null;
 
-    #[ORM\Column(type: 'smallint')]
+    #[ORM\Column(type: 'smallint', nullable: true)]
     #[Assert\Range(min: 0, max: 10000)]
     #[Groups(['nutrition:read', 'nutrition:write'])]
-    private int $kcal;
+    private ?int $kcal = null;
 
     #[ORM\Column(type: 'smallint', nullable: true)]
     #[Assert\Range(min: 0, max: 500)]
@@ -113,14 +113,14 @@ class NutritionLog
     public function setUser(User $u): self { $this->user = $u; return $this; }
     public function getLoggedOn(): \DateTimeImmutable { return $this->loggedOn; }
     public function setLoggedOn(\DateTimeImmutable $d): self { $this->loggedOn = $d; return $this; }
-    public function getProteinsG(): int { return $this->proteinsG; }
-    public function setProteinsG(int $v): self { $this->proteinsG = $v; return $this; }
-    public function getCarbsG(): int { return $this->carbsG; }
-    public function setCarbsG(int $v): self { $this->carbsG = $v; return $this; }
-    public function getFatsG(): int { return $this->fatsG; }
-    public function setFatsG(int $v): self { $this->fatsG = $v; return $this; }
-    public function getKcal(): int { return $this->kcal; }
-    public function setKcal(int $v): self { $this->kcal = $v; return $this; }
+    public function getProteinsG(): ?int { return $this->proteinsG; }
+    public function setProteinsG(?int $v): self { $this->proteinsG = $v; return $this; }
+    public function getCarbsG(): ?int { return $this->carbsG; }
+    public function setCarbsG(?int $v): self { $this->carbsG = $v; return $this; }
+    public function getFatsG(): ?int { return $this->fatsG; }
+    public function setFatsG(?int $v): self { $this->fatsG = $v; return $this; }
+    public function getKcal(): ?int { return $this->kcal; }
+    public function setKcal(?int $v): self { $this->kcal = $v; return $this; }
     public function getFiberG(): ?int { return $this->fiberG; }
     public function setFiberG(?int $v): self { $this->fiberG = $v; return $this; }
     public function getWaterL(): ?string { return $this->waterL; }
