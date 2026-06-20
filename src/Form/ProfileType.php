@@ -40,7 +40,7 @@ class ProfileType extends AbstractType
                 'label' => 'Sexe',
                 'required' => false,
                 'placeholder' => '— Non précisé —',
-                'choices' => ['Homme' => 'M', 'Femme' => 'F'],
+                'choices' => ['Homme' => 'male', 'Femme' => 'female', 'Autre' => 'other'],
                 'attr' => ['class' => 'select select-bordered w-full bg-base-100'],
             ])
             ->add('birthDate', DateType::class, [
