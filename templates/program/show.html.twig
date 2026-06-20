@@ -38,12 +38,12 @@
 
   {# ── Calculateur nutritionnel (BMR / TDEE / macros) ─────────────────────── #}
   <div class="flex justify-end">
-    <a href="{{ path('app_goal_edit') }}" class="btn btn-outline btn-primary btn-sm font-display tracking-widest">🎯 {{ activeGoal ? 'Modifier' : 'Définir' }} mon objectif</a>
+    <a href="{{ path('app_goal_edit') }}" class="btn btn-outline btn-primary btn-sm font-display tracking-widest"><i class="bi bi-bullseye"></i> {{ activeGoal ? 'Modifier' : 'Définir' }} mon objectif</a>
   </div>
 
   <div class="card-coach p-6">
     <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
-      <h2 class="text-2xl font-display flex items-center gap-2">⚡ Besoins caloriques</h2>
+      <h2 class="text-2xl font-display flex items-center gap-2"><i class="bi bi-lightning-charge-fill"></i> Besoins caloriques</h2>
       {% if nutritionPlan %}
         <form method="get" class="flex items-center gap-2">
           <span class="text-xs uppercase tracking-widest text-muted">Activité</span>
@@ -222,7 +222,7 @@
                   <div class="text-xl font-bold">~{{ (startKg - totalDelta * 0.75)|round }} kg</div>
                 </div>
               </li>
-              <li class="step text-base-content/40" data-content="🎯">
+              <li class="step text-base-content/40" data-content="<i class="bi bi-bullseye"></i>">
                 <div class="text-left ml-2">
                   <div class="text-xs uppercase tracking-widest font-bold text-primary">Objectif Final</div>
                   <div class="text-xl font-bold text-primary">{{ tKg }} kg</div>

@@ -80,14 +80,14 @@
         {% for ex in favorites %}
           <span class="badge badge-lg gap-2 border-warning text-warning">
             <button type="button" class="quick-add" data-name="{{ ex.name|e('html_attr') }}">{{ ex.name }}</button>
-            <button type="button" class="quick-fav" data-id="{{ ex.id }}" title="Retirer des favoris">★</button>
+            <button type="button" class="quick-fav" data-id="{{ ex.id }}" title="Retirer des favoris"><i class="bi bi-star-fill"></i></button>
           </span>
         {% endfor %}
         {% for ex in (recents is defined ? recents : []) %}
           {% if (ex.id ~ '') not in favIds %}
           <span class="badge badge-lg badge-ghost gap-2">
             <button type="button" class="quick-add" data-name="{{ ex.name|e('html_attr') }}">{{ ex.name }}</button>
-            <button type="button" class="quick-fav" data-id="{{ ex.id }}" title="Ajouter aux favoris">☆</button>
+            <button type="button" class="quick-fav" data-id="{{ ex.id }}" title="Ajouter aux favoris"><i class="bi bi-star"></i></button>
           </span>
           {% endif %}
         {% endfor %}
@@ -211,7 +211,7 @@ function addSet(prefill) {
       </div>
       <div class="col-span-4 md:col-span-1 flex justify-end">
         <button type="button" onclick="this.closest('[data-index]').remove()"
-                class="btn btn-ghost btn-xs text-muted hover:text-error">✕</button>
+                class="btn btn-ghost btn-xs text-muted hover:text-error"><i class="bi bi-x-lg"></i></button>
       </div>
     </div>
   `;
@@ -251,7 +251,7 @@ if (quickPick) {
           method: 'POST', headers: { 'X-Requested-With': 'fetch' }
         });
         const data = await res.json();
-        fav.textContent = data.favorite ? '★' : '☆';
+        fav.innerHTML = data.favorite ? '<i class="bi bi-star-fill"></i>' : '<i class="bi bi-star"></i>';
       } catch (_) {}
     }
   });

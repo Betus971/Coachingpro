@@ -19,7 +19,7 @@
   {% if sessions is empty %}
     <div class="card-coach p-12 text-center">
       <div class="font-display text-3xl text-muted-strong mb-2">AUCUNE SÉANCE</div>
-      <p class="text-sm text-muted mb-4">C'est l'heure de suer 💪</p>
+      <p class="text-sm text-muted mb-4">C'est l'heure de suer <i class="bi bi-trophy"></i></p>
       <a href="{{ path('app_session_new') }}" class="btn btn-primary btn-sm">Logger ma première séance</a>
     </div>
   {% else %}
