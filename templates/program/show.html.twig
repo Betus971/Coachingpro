@@ -36,6 +36,56 @@
     <div class="absolute -bottom-24 -left-24 w-64 h-64 bg-accent/20 rounded-full blur-3xl pointer-events-none"></div>
   </div>
 
+  {# ── Calculateur nutritionnel (BMR / TDEE / macros) ─────────────────────── #}
+  <div class="card-coach p-6">
+    <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+      <h2 class="text-2xl font-display flex items-center gap-2">⚡ Besoins caloriques</h2>
+      {% if nutritionPlan %}
+        <form method="get" class="flex items-center gap-2">
+          <span class="text-xs uppercase tracking-widest text-muted">Activité</span>
+          <select name="activity" onchange="this.form.submit()" class="select select-bordered select-sm bg-base-100">
+            {% for lvl in activityLevels %}
+              <option value="{{ lvl.value }}" {{ nutritionPlan.activity.value == lvl.value ? 'selected' : '' }}>{{ lvl.label }}</option>
+            {% endfor %}
+          </select>
+        </form>
+      {% endif %}
+    </div>
+
+    {% if nutritionPlan %}
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="stat bg-base-100/50 rounded-2xl border border-base-200">
+          <div class="stat-title text-xs uppercase tracking-widest text-muted">BMR</div>
+          <div class="stat-value text-xl text-primary">{{ nutritionPlan.bmr }}</div>
+          <div class="stat-desc">kcal au repos</div>
+        </div>
+        <div class="stat bg-base-100/50 rounded-2xl border border-base-200">
+          <div class="stat-title text-xs uppercase tracking-widest text-muted">Maintien (TDEE)</div>
+          <div class="stat-value text-xl">{{ nutritionPlan.tdee }}</div>
+          <div class="stat-desc">{{ nutritionPlan.activity.label }}{{ nutritionPlan.activityAuto ? ' · auto' : '' }}</div>
+        </div>
+        <div class="stat bg-base-100/50 rounded-2xl border border-base-200">
+          <div class="stat-title text-xs uppercase tracking-widest text-muted">Cible sèche</div>
+          <div class="stat-value text-xl text-success">{{ nutritionPlan.targetKcal }}</div>
+          <div class="stat-desc">déficit −{{ nutritionPlan.deficitKcal }} kcal</div>
+        </div>
+        <div class="stat bg-base-100/50 rounded-2xl border border-base-200">
+          <div class="stat-title text-xs uppercase tracking-widest text-muted">Macros conseillées</div>
+          <div class="text-sm mt-1 leading-relaxed">
+            <span class="text-secondary font-bold">{{ nutritionPlan.proteinsG }}g</span> prot ·
+            <span class="text-accent font-bold">{{ nutritionPlan.carbsG }}g</span> gluc ·
+            <span class="text-primary font-bold">{{ nutritionPlan.fatsG }}g</span> lip
+          </div>
+        </div>
+      </div>
+      <p class="text-xs text-muted mt-3">Calcul Mifflin-St Jeor sur ta dernière pesée ({{ nutritionPlan.weightKg }} kg). Demande au Coach IA d'expliquer ou d'appliquer ces macros à ton programme.</p>
+    {% else %}
+      <div class="text-sm text-muted">
+        Profil incomplet — renseigne ta <a href="{{ path('app_profile') }}" class="link link-primary">taille, sexe et date de naissance</a> (et logge une pesée) pour calculer ton BMR / TDEE.
+      </div>
+    {% endif %}
+  </div>
+
   {% if assignment %}
     
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
