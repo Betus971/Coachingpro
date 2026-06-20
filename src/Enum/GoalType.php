@@ -16,6 +16,17 @@ enum GoalType: string
     case MuscleGain   = 'muscle_gain';   // métrique: muscle_kg, montant
     case Performance  = 'performance';   // métrique: e1rm sur un exercice, montant
 
+    public function label(): string
+    {
+        return match ($this) {
+            self::WeightLoss  => 'Perte de poids',
+            self::WeightGain  => 'Prise de poids',
+            self::BodyFat     => 'Perte de masse grasse',
+            self::MuscleGain  => 'Prise de muscle',
+            self::Performance => 'Performance',
+        };
+    }
+
     /** Sens attendu : true = la valeur doit augmenter, false = diminuer. */
     public function isAscending(): bool
     {
