@@ -283,6 +283,12 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
+    /** Âge en années depuis la date de naissance (null si non renseignée). */
+    public function getAge(): ?int
+    {
+        return $this->birthDate?->diff(new \DateTimeImmutable('today'))->y;
+    }
+
     public function getCreatedAt(): \DateTimeImmutable
     {
         return $this->createdAt;
