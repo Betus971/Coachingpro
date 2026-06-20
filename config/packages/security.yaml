@@ -57,6 +57,7 @@ security:
         - { path: ^/api,        roles: IS_AUTHENTICATED_FULLY }
         - { path: ^/login,    roles: PUBLIC_ACCESS }
         - { path: ^/register, roles: PUBLIC_ACCESS }
+        - { path: ^/invitation, roles: PUBLIC_ACCESS }
         - { path: ^/,         roles: IS_AUTHENTICATED_REMEMBERED }
 
 when@test:

@@ -8,6 +8,7 @@ use ApiPlatform\Doctrine\Orm\Extension\QueryCollectionExtensionInterface;
 use ApiPlatform\Doctrine\Orm\Extension\QueryItemExtensionInterface;
 use ApiPlatform\Doctrine\Orm\Util\QueryNameGeneratorInterface;
 use ApiPlatform\Metadata\Operation;
+use App\Entity\ClientInvitation;
 use App\Entity\Goal;
 use App\Entity\GoalAdjustment;
 use App\Entity\NutritionLog;
@@ -69,6 +70,8 @@ final readonly class CurrentUserExtension implements QueryCollectionExtensionInt
                 $this->addExerciseScopeWhere($qb);
             } elseif ($resourceClass === GoalAdjustment::class) {
                 $this->addGoalAdjustmentScopeWhere($qb);
+            } elseif ($resourceClass === ClientInvitation::class) {
+                $this->addInvitationScopeWhere($qb);
             }
             return;
         }
@@ -121,6 +124,25 @@ final readonly class CurrentUserExtension implements QueryCollectionExtensionInt
             $qb->andWhere('_scope_goal_user = :_scope_self')
                ->setParameter('_scope_self', $user->getId(), 'uuid');
         }
+    }
+
+    /**
+     * ClientInvitation est scopée par `coach` : un coach ne voit QUE ses invitations.
+     * (Les clients n'accèdent jamais à cette ressource — sécurité ROLE_COACH en amont.)
+     */
+    private function addInvitationScopeWhere(QueryBuilder $qb): void
+    {
+        $user = $this->security->getUser();
+        if (!$user instanceof User) {
+            return;
+        }
+        if ($this->security->isGranted('ROLE_ADMIN')) {
+            return;
+        }
+
+        $alias = $qb->getRootAliases()[0];
+        $qb->andWhere("$alias.coach = :_scope_self")
+           ->setParameter('_scope_self', $user->getId(), 'uuid');
     }
 
     private function addExerciseScopeWhere(QueryBuilder $qb): void

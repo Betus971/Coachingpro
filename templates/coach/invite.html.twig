@@ -1,0 +1,44 @@
+{% extends 'base.html.twig' %}
+{% block title %}Inviter un client — CoachPro{% endblock %}
+
+{% block body %}
+<div class="px-2 md:px-4 py-6 max-w-lg mx-auto space-y-6">
+
+  <div>
+    <a href="{{ path('app_coach_clients') }}" class="text-sm text-muted hover:text-primary"><i class="bi bi-arrow-left"></i> Retour aux clients</a>
+    <h1 class="text-3xl font-display font-bold mt-2 flex items-center gap-3">
+      <i class="bi bi-person-plus-fill text-primary"></i> Inviter un client
+    </h1>
+    <p class="text-muted mt-1">Le client recevra un lien pour créer son compte et rejoindre ton suivi.</p>
+  </div>
+
+  {% if error %}
+    <div class="alert alert-error shadow-sm"><span><i class="bi bi-exclamation-triangle"></i> {{ error }}</span></div>
+  {% endif %}
+
+  <form method="post" class="card-coach p-6 space-y-4">
+    <div>
+      <label class="label-text font-bold text-muted uppercase text-xs">Email du client *</label>
+      <input type="email" name="email" required placeholder="client@email.com"
+             class="input input-bordered w-full bg-base-100 mt-1" />
+    </div>
+    <div class="grid grid-cols-2 gap-3">
+      <div>
+        <label class="label-text font-bold text-muted uppercase text-xs">Prénom</label>
+        <input type="text" name="first_name" placeholder="Optionnel"
+               class="input input-bordered w-full bg-base-100 mt-1" />
+      </div>
+      <div>
+        <label class="label-text font-bold text-muted uppercase text-xs">Nom</label>
+        <input type="text" name="last_name" placeholder="Optionnel"
+               class="input input-bordered w-full bg-base-100 mt-1" />
+      </div>
+    </div>
+    <p class="text-xs text-muted">Le client pourra compléter/corriger son prénom et nom à l'inscription.</p>
+    <button class="btn btn-primary w-full font-display tracking-widest">
+      <i class="bi bi-send"></i> Envoyer l'invitation
+    </button>
+  </form>
+
+</div>
+{% endblock %}

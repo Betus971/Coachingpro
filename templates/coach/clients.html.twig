@@ -1,0 +1,103 @@
+{% extends 'base.html.twig' %}
+{% block title %}Mes clients — CoachPro{% endblock %}
+
+{% block body %}
+<div class="px-2 md:px-4 py-6 max-w-5xl mx-auto space-y-10">
+
+  <div class="flex flex-wrap items-center justify-between gap-4">
+    <div>
+      <h1 class="text-4xl font-display font-bold flex items-center gap-3">
+        <i class="bi bi-people-fill text-primary"></i> Mes clients
+      </h1>
+      <p class="text-muted mt-1">{{ clients|length }} client(s) actif(s) · {{ invitations|length }} invitation(s) en attente</p>
+    </div>
+    <a href="{{ path('app_coach_client_invite') }}" class="btn btn-primary font-display tracking-widest shadow-lg shadow-primary/20">
+      <i class="bi bi-person-plus-fill"></i> Inviter un client
+    </a>
+  </div>
+
+  {# ── Clients actifs ─────────────────────────────────────────────────────── #}
+  <section class="space-y-4">
+    <h2 class="text-2xl font-display flex items-center gap-2"><i class="bi bi-person-check"></i> Clients actifs</h2>
+
+    {% if clients|length == 0 %}
+      <div class="card bg-base-200 border border-base-300 p-10 text-center">
+        <i class="bi bi-people text-4xl text-base-content/30"></i>
+        <p class="text-base-content/60 mt-3">Aucun client pour l'instant. Invite ton premier client pour commencer.</p>
+      </div>
+    {% else %}
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {% for client in clients %}
+          <div class="card bg-base-100 border border-base-200 shadow-sm">
+            <div class="card-body p-5">
+              <div class="flex items-center gap-3">
+                <div class="avatar placeholder">
+                  <div class="bg-primary/10 text-primary rounded-full w-12">
+                    <span class="font-display text-lg">{{ client.firstName|first|upper }}{{ client.lastName|first|upper }}</span>
+                  </div>
+                </div>
+                <div class="min-w-0">
+                  <div class="font-bold truncate">{{ client.firstName }} {{ client.lastName }}</div>
+                  <div class="text-xs text-muted truncate">{{ client.email }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </section>
+
+  {# ── Invitations en attente ─────────────────────────────────────────────── #}
+  {% if invitations|length > 0 %}
+    <section class="space-y-4">
+      <h2 class="text-2xl font-display flex items-center gap-2"><i class="bi bi-envelope-paper"></i> Invitations en attente</h2>
+
+      <div class="space-y-3">
+        {% for inv in invitations %}
+          {% set link = url('app_invitation_accept', {token: inv.token}) %}
+          <div class="card bg-base-100 border border-base-200 shadow-sm">
+            <div class="card-body p-5 gap-3">
+              <div class="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <div class="font-bold">{{ inv.email }}</div>
+                  <div class="text-xs text-muted">
+                    {% if inv.firstName or inv.lastName %}{{ inv.firstName }} {{ inv.lastName }} · {% endif %}
+                    envoyée le {{ inv.createdAt|date('d/m/Y') }} · expire le {{ inv.expiresAt|date('d/m/Y') }}
+                  </div>
+                </div>
+                <form method="post" action="{{ path('app_coach_invite_revoke', {id: inv.id}) }}"
+                      onsubmit="return confirm('Révoquer cette invitation ?');">
+                  <input type="hidden" name="_token" value="{{ csrf_token('revoke' ~ inv.id) }}">
+                  <button class="btn btn-ghost btn-sm text-error"><i class="bi bi-x-circle"></i> Révoquer</button>
+                </form>
+              </div>
+
+              <div class="join w-full">
+                <input type="text" readonly value="{{ link }}"
+                       class="input input-bordered input-sm join-item w-full bg-base-200 text-xs" />
+                <button type="button" class="btn btn-sm join-item btn-outline btn-primary"
+                        data-link="{{ link }}" onclick="copyInviteLink(this)">
+                  <i class="bi bi-clipboard"></i> Copier le lien
+                </button>
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </section>
+  {% endif %}
+
+</div>
+
+<script>
+  function copyInviteLink(btn) {
+    const link = btn.getAttribute('data-link');
+    navigator.clipboard.writeText(link).then(function () {
+      const original = btn.innerHTML;
+      btn.innerHTML = '<i class="bi bi-check-lg"></i> Copié !';
+      setTimeout(function () { btn.innerHTML = original; }, 1500);
+    });
+  }
+</script>
+{% endblock %}
