@@ -1,0 +1,148 @@
+{% extends 'base.html.twig' %}
+{% block title %}Éditer {{ program.name }} — CoachPro{% endblock %}
+
+{% set assignedClient = null %}
+{% for a in program.assignments %}{% if a.isActive %}{% set assignedClient = a.user %}{% endif %}{% endfor %}
+
+{% block body %}
+<div class="px-2 md:px-4 py-6 max-w-4xl mx-auto space-y-6">
+
+  <div>
+    {% if assignedClient %}
+      <a href="{{ path('app_coach_client_show', {id: assignedClient.id}) }}" class="text-sm text-muted hover:text-primary"><i class="bi bi-arrow-left"></i> Retour à la fiche de {{ assignedClient.firstName }}</a>
+    {% else %}
+      <a href="{{ path('app_coach_clients') }}" class="text-sm text-muted hover:text-primary"><i class="bi bi-arrow-left"></i> Retour aux clients</a>
+    {% endif %}
+    <h1 class="text-3xl font-display font-bold mt-2 flex items-center gap-3"><i class="bi bi-pencil-square text-primary"></i> {{ program.name }}</h1>
+    {% if program.description %}<p class="text-muted mt-1">{{ program.description }}</p>{% endif %}
+  </div>
+
+  {# ── Jours ──────────────────────────────────────────────────────────────── #}
+  {% for wt in program.workoutTemplates %}
+    <div class="card-coach p-6">
+      <div class="flex items-center justify-between gap-3 mb-4">
+        <h2 class="text-xl font-display flex items-center gap-2">
+          <i class="bi bi-calendar-day text-primary"></i> {{ wt.name }}
+          {% if wt.dayOfWeek %}<span class="badge badge-ghost">{{ dayNames[wt.dayOfWeek] }}</span>{% endif %}
+        </h2>
+        <form method="post" action="{{ path('app_coach_program_delete_day', {id: wt.id}) }}" onsubmit="return confirm('Supprimer ce jour et ses exercices ?');">
+          <input type="hidden" name="_token" value="{{ csrf_token('wt' ~ wt.id) }}">
+          <button class="btn btn-ghost btn-xs text-error"><i class="bi bi-trash"></i></button>
+        </form>
+      </div>
+
+      {% if wt.exerciseTemplates|length == 0 %}
+        <p class="text-sm text-muted mb-4">Aucun exercice pour ce jour.</p>
+      {% else %}
+        <div class="space-y-2 mb-4">
+          {% for et in wt.exerciseTemplates %}
+            <div class="bg-base-100 rounded-lg border border-base-200 p-3">
+              <div class="flex items-center justify-between gap-2 mb-2">
+                <div class="font-medium">{{ et.exercise.name }}
+                  {% if et.exercise.muscleGroup %}<span class="text-xs text-muted">· {{ et.exercise.muscleGroup }}</span>{% endif %}
+                </div>
+                <div class="flex items-center gap-1">
+                  <form method="post" action="{{ path('app_coach_program_move_exercise', {id: et.id}) }}">
+                    <input type="hidden" name="_token" value="{{ csrf_token('et' ~ et.id) }}">
+                    <input type="hidden" name="direction" value="up">
+                    <button class="btn btn-ghost btn-xs" title="Monter"><i class="bi bi-arrow-up"></i></button>
+                  </form>
+                  <form method="post" action="{{ path('app_coach_program_move_exercise', {id: et.id}) }}">
+                    <input type="hidden" name="_token" value="{{ csrf_token('et' ~ et.id) }}">
+                    <input type="hidden" name="direction" value="down">
+                    <button class="btn btn-ghost btn-xs" title="Descendre"><i class="bi bi-arrow-down"></i></button>
+                  </form>
+                  <form method="post" action="{{ path('app_coach_program_delete_exercise', {id: et.id}) }}" onsubmit="return confirm('Retirer cet exercice ?');">
+                    <input type="hidden" name="_token" value="{{ csrf_token('et' ~ et.id) }}">
+                    <button class="btn btn-ghost btn-xs text-error" title="Retirer"><i class="bi bi-x-lg"></i></button>
+                  </form>
+                </div>
+              </div>
+              <form method="post" action="{{ path('app_coach_program_update_exercise', {id: et.id}) }}"
+                    class="grid grid-cols-2 sm:grid-cols-6 gap-2 items-end">
+                <input type="hidden" name="_token" value="{{ csrf_token('et' ~ et.id) }}">
+                <label class="text-xs text-muted">Séries
+                  <input type="number" name="target_sets" min="1" value="{{ et.targetSets }}" class="input input-bordered input-xs w-full bg-base-200 mt-1">
+                </label>
+                <label class="text-xs text-muted">Reps min
+                  <input type="number" name="target_reps_min" min="1" value="{{ et.targetRepsMin }}" class="input input-bordered input-xs w-full bg-base-200 mt-1">
+                </label>
+                <label class="text-xs text-muted">Reps max
+                  <input type="number" name="target_reps_max" min="1" value="{{ et.targetRepsMax }}" class="input input-bordered input-xs w-full bg-base-200 mt-1">
+                </label>
+                <label class="text-xs text-muted">Charge kg
+                  <input type="number" step="0.5" name="target_weight" value="{{ et.targetWeightKg }}" class="input input-bordered input-xs w-full bg-base-200 mt-1">
+                </label>
+                <label class="text-xs text-muted">Repos s
+                  <input type="number" name="rest_seconds" value="{{ et.restSeconds }}" class="input input-bordered input-xs w-full bg-base-200 mt-1">
+                </label>
+                <button class="btn btn-primary btn-xs"><i class="bi bi-check2"></i> OK</button>
+              </form>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      {# Ajouter un exercice à ce jour #}
+      <form method="post" action="{{ path('app_coach_program_add_exercise', {id: program.id}) }}"
+            class="grid grid-cols-2 sm:grid-cols-7 gap-2 items-end border-t border-base-200 pt-4">
+        <input type="hidden" name="_token" value="{{ csrf_token('prog' ~ program.id) }}">
+        <input type="hidden" name="template_id" value="{{ wt.id }}">
+        <input type="hidden" name="exercise_id" data-ex-id>
+        <label class="text-xs text-muted col-span-2">Exercice
+          <input type="text" name="exercise_name" list="exercise-options" data-ex-search autocomplete="off"
+                 placeholder="Tape pour chercher…" required class="input input-bordered input-sm w-full bg-base-100 mt-1">
+        </label>
+        <label class="text-xs text-muted">Séries
+          <input type="number" name="target_sets" min="1" value="3" class="input input-bordered input-sm w-full bg-base-100 mt-1">
+        </label>
+        <label class="text-xs text-muted">Reps min
+          <input type="number" name="target_reps_min" min="1" value="8" class="input input-bordered input-sm w-full bg-base-100 mt-1">
+        </label>
+        <label class="text-xs text-muted">Reps max
+          <input type="number" name="target_reps_max" min="1" value="12" class="input input-bordered input-sm w-full bg-base-100 mt-1">
+        </label>
+        <label class="text-xs text-muted">Repos s
+          <input type="number" name="rest_seconds" placeholder="90" class="input input-bordered input-sm w-full bg-base-100 mt-1">
+        </label>
+        <button class="btn btn-primary btn-sm"><i class="bi bi-plus-lg"></i> Ajouter</button>
+      </form>
+    </div>
+  {% endfor %}
+
+  {# ── Ajouter un jour ────────────────────────────────────────────────────── #}
+  <form method="post" action="{{ path('app_coach_program_add_day', {id: program.id}) }}"
+        class="card bg-base-200 border border-base-300 p-5 flex flex-wrap items-end gap-3">
+    <input type="hidden" name="_token" value="{{ csrf_token('prog' ~ program.id) }}">
+    <label class="text-xs text-muted">Nom du jour
+      <input type="text" name="name" placeholder="Push / Pull / Jambes…" class="input input-bordered input-sm bg-base-100 mt-1">
+    </label>
+    <label class="text-xs text-muted">Jour de la semaine
+      <select name="day_of_week" class="select select-bordered select-sm bg-base-100 mt-1">
+        <option value="">— Aucun —</option>
+        {% for num, label in dayNames %}<option value="{{ num }}">{{ label }}</option>{% endfor %}
+      </select>
+    </label>
+    <button class="btn btn-outline btn-primary btn-sm"><i class="bi bi-calendar-plus"></i> Ajouter un jour</button>
+  </form>
+
+</div>
+
+<datalist id="exercise-options">
+  {% for ex in exercises %}<option value="{{ ex.name|e('html_attr') }}"></option>{% endfor %}
+</datalist>
+
+<script>
+  const EX_MAP = {
+    {% for ex in exercises %}"{{ ex.name|e('js') }}": "{{ ex.id }}"{% if not loop.last %},{% endif %}
+    {% endfor %}
+  };
+  document.addEventListener('input', function (e) {
+    const input = e.target.closest('[data-ex-search]');
+    if (!input) return;
+    const form = input.closest('form');
+    const hidden = form.querySelector('[data-ex-id]');
+    if (hidden) hidden.value = EX_MAP[input.value] || '';
+  });
+</script>
+{% endblock %}

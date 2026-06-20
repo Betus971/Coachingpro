@@ -104,6 +104,7 @@
       <p class="text-sm">Actif : <span class="font-bold">{{ activeAssignment.program.name }}</span>
         <span class="text-muted">— depuis le {{ activeAssignment.startDate|date('d/m/Y') }}{% if activeAssignment.program.durationWeeks %} · {{ activeAssignment.program.durationWeeks }} sem.{% endif %}</span>
       </p>
+      <a href="{{ path('app_coach_program_edit', {id: activeAssignment.program.id}) }}" class="btn btn-outline btn-primary btn-sm mt-3"><i class="bi bi-pencil-square"></i> Éditer ce programme</a>
     {% else %}
       <p class="text-sm text-muted">Aucun programme actif pour ce client.</p>
     {% endif %}
