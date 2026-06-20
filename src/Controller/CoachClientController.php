@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Coach\CoachActionExecutor;
 use App\Entity\ClientInvitation;
 use App\Entity\Goal;
 use App\Entity\User;
+use App\Enum\CoachActionType;
 use App\Enum\GoalMode;
 use App\Enum\GoalStatus;
 use App\Enum\GoalType;
@@ -18,6 +20,7 @@ use App\Repository\ProgramRepository;
 use App\Repository\WeightLogRepository;
 use App\Repository\WorkoutSessionRepository;
 use App\Service\InvitationMailer;
+use App\Service\MistralCoachService;
 use App\Service\Nutrition\NutritionCalculator;
 use App\Service\ProgramAssigner;
 use Doctrine\ORM\EntityManagerInterface;
@@ -52,6 +55,7 @@ class CoachClientController extends AbstractController
     #[Route('/clients/{id}', name: 'app_coach_client_show', methods: ['GET'], requirements: ['id' => '[0-9a-fA-F-]{36}'])]
     public function show(
         User $client,
+        Request $request,
         WeightLogRepository $weightRepo,
         WorkoutSessionRepository $sessionRepo,
         NutritionLogRepository $nutritionRepo,
@@ -67,6 +71,11 @@ class CoachClientController extends AbstractController
         $coach            = $this->getUser();
         $programs         = $programRepo->findBy(['createdBy' => $coach], ['createdAt' => 'DESC']);
         $activeAssignment = $assignmentRepo->findOneBy(['user' => $client, 'isActive' => true]);
+
+        $session       = $request->getSession();
+        $iaReply       = $session->get('coach_ia_reply_' . $client->getId());
+        $session->remove('coach_ia_reply_' . $client->getId());
+        $pendingAction = $session->get('coach_pending_action_' . $client->getId());
 
         $activeGoal    = $goalRepo->findOpenForUser($client)[0] ?? null;
         $lastWeight    = $weightRepo->findOneBy(['user' => $client], ['loggedOn' => 'DESC']);
@@ -122,6 +131,8 @@ class CoachClientController extends AbstractController
             'activeAssignment' => $activeAssignment,
             'goalTypes'        => GoalType::cases(),
             'goalModes'        => GoalMode::cases(),
+            'iaReply'          => $iaReply,
+            'pendingAction'    => is_array($pendingAction) ? $pendingAction : null,
         ]);
     }
 
@@ -201,6 +212,76 @@ class CoachClientController extends AbstractController
 
         $this->addFlash('success', 'Objectif du client enregistré.');
         return $this->redirectToRoute('app_coach_client_show', ['id' => $client->getId()]);
+    }
+
+    #[Route('/clients/{id}/ia', name: 'app_coach_client_ia', methods: ['POST'], requirements: ['id' => '[0-9a-fA-F-]{36}'])]
+    public function consultIa(
+        User $client,
+        Request $request,
+        MistralCoachService $coach,
+        CoachActionExecutor $executor,
+    ): Response {
+        $this->denyAccessUnlessGranted('EDIT', $client);
+        if (!$this->isCsrfTokenValid('ia' . $client->getId(), (string) $request->request->get('_token'))) {
+            throw $this->createAccessDeniedException('CSRF invalide.');
+        }
+
+        $session = $request->getSession();
+        $key     = 'coach_pending_action_' . $client->getId();
+        $redirect = $this->redirectToRoute('app_coach_client_show', ['id' => $client->getId()]);
+
+        // Confirmation d'une action proposée précédemment.
+        if ($request->request->get('confirm')) {
+            $pending = $session->get($key);
+            $session->remove($key);
+            if (is_array($pending)) {
+                $type = CoachActionType::tryFrom($pending['type'] ?? '');
+                try {
+                    $msg = $type !== null
+                        ? $executor->apply($client, $type, $pending['payload'] ?? [])
+                        : 'Action introuvable.';
+                    $this->addFlash('success', $msg);
+                } catch (\InvalidArgumentException $e) {
+                    $this->addFlash('error', 'Impossible d\'appliquer : ' . $e->getMessage());
+                }
+            }
+            return $redirect;
+        }
+
+        // Annulation.
+        if ($request->request->get('cancel')) {
+            $session->remove($key);
+            $this->addFlash('info', 'Action annulée.');
+            return $redirect;
+        }
+
+        // Nouvelle question / instruction sur ce client.
+        $message = trim((string) $request->request->get('message'));
+        if ($message === '') {
+            return $redirect;
+        }
+
+        $action = null;
+        $reply  = $coach->chat($client, $message, [], $action);
+
+        if (is_array($action)) {
+            try {
+                $type    = CoachActionType::tryFrom($action['type'] ?? '');
+                $summary = $type !== null ? $executor->describe($client, $type, $action['payload'] ?? []) : null;
+                if ($summary !== null) {
+                    $session->set($key, [
+                        'type'    => $action['type'],
+                        'payload' => $action['payload'] ?? [],
+                        'summary' => $summary,
+                    ]);
+                }
+            } catch (\InvalidArgumentException $e) {
+                $reply .= "\n\n(Action proposée non applicable : " . $e->getMessage() . ')';
+            }
+        }
+
+        $session->set('coach_ia_reply_' . $client->getId(), $reply);
+        return $redirect;
     }
 
     private function dec(?string $v): string
