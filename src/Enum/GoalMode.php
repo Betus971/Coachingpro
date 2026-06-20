@@ -23,6 +23,15 @@ enum GoalMode: string
     /** La cible bouge (recomposition). Rare. */
     case FixedTarget = 'fixed_target';
 
+    public function label(): string
+    {
+        return match ($this) {
+            self::FixedDeadline => 'Échéance fixe (rythme ajustable)',
+            self::FixedRate     => 'Rythme fixe (échéance ajustable)',
+            self::FixedTarget   => 'Cible fixe (recomposition)',
+        };
+    }
+
     /** Variable que le moteur d'ajustement a le droit de modifier. */
     public function adjustableDimension(): string
     {

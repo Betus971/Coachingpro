@@ -43,6 +43,89 @@
     {% else %}
       <p class="text-sm text-muted">Aucun objectif défini pour ce client.</p>
     {% endif %}
+
+    <details class="mt-5">
+      <summary class="cursor-pointer text-sm text-primary font-bold"><i class="bi bi-pencil-square"></i> {{ activeGoal ? 'Modifier' : 'Définir' }} l'objectif</summary>
+      <form method="post" action="{{ path('app_coach_client_goal', {id: client.id}) }}" class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <input type="hidden" name="_token" value="{{ csrf_token('goal' ~ client.id) }}">
+        <div>
+          <label class="label-text text-xs uppercase tracking-widest text-muted">Type</label>
+          <select name="type" class="select select-bordered select-sm w-full bg-base-100 mt-1">
+            {% for t in goalTypes %}
+              <option value="{{ t.value }}" {{ activeGoal and activeGoal.type.value == t.value ? 'selected' : '' }}>{{ t.label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="label-text text-xs uppercase tracking-widest text-muted">Mode</label>
+          <select name="mode" class="select select-bordered select-sm w-full bg-base-100 mt-1">
+            {% for m in goalModes %}
+              <option value="{{ m.value }}" {{ activeGoal and activeGoal.mode.value == m.value ? 'selected' : '' }}>{{ m.label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="label-text text-xs uppercase tracking-widest text-muted">Valeur de départ {% if activeGoal %}(figée){% endif %}</label>
+          <input type="number" step="0.1" name="start_value" {{ activeGoal ? 'disabled' : '' }}
+                 value="{{ activeGoal ? activeGoal.startValue : (currentKg ?: '') }}"
+                 class="input input-bordered input-sm w-full bg-base-100 mt-1" />
+        </div>
+        <div>
+          <label class="label-text text-xs uppercase tracking-widest text-muted">Cible</label>
+          <input type="number" step="0.1" name="target_value" required
+                 value="{{ activeGoal ? activeGoal.targetValue : '' }}"
+                 class="input input-bordered input-sm w-full bg-base-100 mt-1" />
+        </div>
+        {% if not activeGoal %}
+          <div>
+            <label class="label-text text-xs uppercase tracking-widest text-muted">Date de début</label>
+            <input type="date" name="start_date" value="{{ 'now'|date('Y-m-d') }}"
+                   class="input input-bordered input-sm w-full bg-base-100 mt-1" />
+          </div>
+        {% endif %}
+        <div>
+          <label class="label-text text-xs uppercase tracking-widest text-muted">Échéance</label>
+          <input type="date" name="target_date" required
+                 value="{{ activeGoal ? activeGoal.targetDate|date('Y-m-d') : '' }}"
+                 class="input input-bordered input-sm w-full bg-base-100 mt-1" />
+        </div>
+        <div class="sm:col-span-2">
+          <button class="btn btn-primary btn-sm"><i class="bi bi-check2"></i> Enregistrer l'objectif</button>
+        </div>
+      </form>
+    </details>
+  </div>
+
+  {# ── Programme assigné ───────────────────────────────────────────────────── #}
+  <div class="card-coach p-6">
+    <h2 class="text-xl font-display flex items-center gap-2 mb-4"><i class="bi bi-clipboard2-pulse text-primary"></i> Programme</h2>
+
+    {% if activeAssignment %}
+      <p class="text-sm">Actif : <span class="font-bold">{{ activeAssignment.program.name }}</span>
+        <span class="text-muted">— depuis le {{ activeAssignment.startDate|date('d/m/Y') }}{% if activeAssignment.program.durationWeeks %} · {{ activeAssignment.program.durationWeeks }} sem.{% endif %}</span>
+      </p>
+    {% else %}
+      <p class="text-sm text-muted">Aucun programme actif pour ce client.</p>
+    {% endif %}
+
+    {% if programs|length > 0 %}
+      <form method="post" action="{{ path('app_coach_client_assign_program', {id: client.id}) }}" class="mt-4 space-y-3">
+        <input type="hidden" name="_token" value="{{ csrf_token('assign' ~ client.id) }}">
+        <select name="program_id" required class="select select-bordered select-sm w-full bg-base-100">
+          <option value="" disabled selected>Choisir un programme…</option>
+          {% for p in programs %}
+            <option value="{{ p.id }}">{{ p.name }}{% if p.durationWeeks %} ({{ p.durationWeeks }} sem.){% endif %}</option>
+          {% endfor %}
+        </select>
+        <label class="flex items-center gap-2 text-sm cursor-pointer">
+          <input type="checkbox" name="duplicate" value="1" class="checkbox checkbox-sm checkbox-primary" />
+          Dupliquer le programme pour ce client (édition isolée du modèle)
+        </label>
+        <button class="btn btn-primary btn-sm"><i class="bi bi-link-45deg"></i> Assigner</button>
+      </form>
+    {% else %}
+      <p class="text-xs text-muted mt-3">Tu n'as pas encore créé de programme à assigner.</p>
+    {% endif %}
   </div>
 
   {# ── Courbe de poids ─────────────────────────────────────────────────────── #}
