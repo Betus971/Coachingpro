@@ -445,8 +445,7 @@ PROMPT;
         $goal        = $this->getActiveGoal($user);
 
         $currentKg = $lastWeight  ? (float) $lastWeight->getWeightKg()  : 0.0;
-        $startKg   = $goal ? (float) $goal->getStartValue() : ($startWeight ? (float) $startWeight->getWeightKg() : 121.2);
-        $targetKg  = $goal ? (float) $goal->getTargetValue() : 95.0;
+        $startKg   = $goal ? (float) $goal->getStartValue() : ($startWeight ? (float) $startWeight->getWeightKg() : 0.0);
         $lost      = round($startKg - $currentKg, 1);
 
         $weightHistory = empty($weightLogs)
@@ -489,7 +488,6 @@ PROFIL UTILISATEUR :
 OBJECTIF ACTIF :
 {$goalContext}
 
-- Objectif : perdre du poids de {$startKg} kg → {$targetKg} kg
 - Poids actuel : {$currentKg} kg
 - Kilos perdus depuis le début : {$lost} kg
 - Historique poids récent : {$weightHistory}
@@ -524,8 +522,7 @@ PROMPT;
         $goal          = $this->getActiveGoal($user);
         $currentWeight = (float) $logs[0]->getWeightKg();
         $startWeight   = $this->weightRepo->findOneBy(['user' => $user], ['loggedOn' => 'ASC']);
-        $startKg       = $goal ? (float) $goal->getStartValue() : ($startWeight ? (float) $startWeight->getWeightKg() : 121.2);
-        $targetKg      = $goal ? (float) $goal->getTargetValue() : 95.0;
+        $startKg       = $goal ? (float) $goal->getStartValue() : ($startWeight ? (float) $startWeight->getWeightKg() : 0.0);
         $lost          = round($startKg - $currentWeight, 1);
 
         $weightHistory = implode(', ', array_map(
@@ -550,7 +547,6 @@ PROFIL UTILISATEUR :
 OBJECTIF ACTIF :
 {$goalContext}
 
-- Objectif : perdre du poids de {$startKg} kg → {$targetKg} kg
 - Poids actuel : {$currentWeight} kg
 - Poids perdu depuis le début : {$lost} kg
 - Historique récent : {$weightHistory}
@@ -575,7 +571,6 @@ PROMPT;
         }
 
         $goal     = $this->getActiveGoal($user);
-        $targetKg = $goal ? (float) $goal->getTargetValue() : 95.0;
         $current  = (float) $logs[0]->getWeightKg();
         $previous = (float) $logs[1]->getWeightKg();
         $delta    = round($current - $previous, 1);
@@ -610,7 +605,6 @@ DONNÉES POIDS & COMPOSITION :
 Variation depuis la dernière pesée : {$delta} kg
 {$fatLine}
 {$muscleLine}
-Objectif : atteindre {$targetKg} kg
 
 Analyse en 3 points :
 1. Tendance du poids sur les dernières pesées (vitesse de perte, régularité)
