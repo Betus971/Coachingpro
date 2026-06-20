@@ -64,6 +64,24 @@
                     {{ form_widget(profileForm.email) }}
                     {{ form_errors(profileForm.email) }}
                 </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="form-control">
+                        {{ form_label(profileForm.heightCm, null, {'label_attr': {'class': 'label-text font-bold text-muted uppercase text-xs'}}) }}
+                        {{ form_widget(profileForm.heightCm) }}
+                        {{ form_errors(profileForm.heightCm) }}
+                    </div>
+                    <div class="form-control">
+                        {{ form_label(profileForm.sex, null, {'label_attr': {'class': 'label-text font-bold text-muted uppercase text-xs'}}) }}
+                        {{ form_widget(profileForm.sex) }}
+                        {{ form_errors(profileForm.sex) }}
+                    </div>
+                </div>
+                <div class="form-control">
+                    {{ form_label(profileForm.birthDate, null, {'label_attr': {'class': 'label-text font-bold text-muted uppercase text-xs'}}) }}
+                    {{ form_widget(profileForm.birthDate) }}
+                    {{ form_errors(profileForm.birthDate) }}
+                    <span class="text-xs text-muted mt-1">Sert au calcul de ton BMR / besoins caloriques.</span>
+                </div>
                 <button type="submit" class="btn btn-primary font-display mt-4 w-full">Enregistrer les modifications</button>
             {{ form_end(profileForm) }}
         </div>
