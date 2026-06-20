@@ -10,11 +10,11 @@
     <div class="hero-content text-center py-16 w-full flex-col relative z-10">
       <div class="badge badge-primary badge-outline font-display tracking-widest uppercase mb-4">Programme Actif</div>
       <h1 class="text-5xl md:text-6xl font-display font-bold text-base-content drop-shadow-sm">
-        {% if assignment %}{{ assignment.program.name }}{% else %}AUCUN PROGRAMME{% endif %}
+        {% if assignment %}{{ assignment.program.name|split('—')|first|trim }}{% if activeGoal %} — {{ startKg|round }} → {{ targetKg|round }} kg{% endif %}{% else %}AUCUN PROGRAMME{% endif %}
       </h1>
       {% if assignment %}
         <p class="py-6 max-w-2xl text-lg text-base-content/80">
-          {{ assignment.program.description|default("Suit ton programme à la lettre pour atteindre tes objectifs de transformation.") }}
+          {% if activeGoal %}Objectif : {{ (startKg - targetKg) >= 0 ? 'perdre' : 'prendre' }} ~{{ (startKg - targetKg)|abs|round }} kg ({{ startKg|round }} → {{ targetKg|round }} kg){% if nutritionPlan %} · cible {{ nutritionPlan.targetKcal }} kcal · {{ nutritionPlan.proteinsG }}g prot · {{ nutritionPlan.carbsG }}g gluc · {{ nutritionPlan.fatsG }}g lip{% endif %}.{% else %}{{ assignment.program.description|default("Définis ton objectif pour personnaliser ton programme.") }}{% endif %}
         </p>
         <div class="flex flex-wrap justify-center gap-4">
           <div class="stat bg-base-100/50 backdrop-blur rounded-2xl w-auto border border-base-200 shadow-sm">
@@ -194,7 +194,7 @@
           <div class="card-body">
             
             {# Calcul dynamique des jalons (interpolation linéaire départ → cible) #}
-            {% set tKg = targetKg|default(95) %}
+            {% set tKg = targetKg|default(startKg) %}
             {% set totalDelta = startKg - tKg %}
             
             <ul class="steps steps-vertical w-full font-display">
@@ -222,7 +222,7 @@
                   <div class="text-xl font-bold">~{{ (startKg - totalDelta * 0.75)|round }} kg</div>
                 </div>
               </li>
-              <li class="step text-base-content/40" data-content="<i class="bi bi-bullseye"></i>">
+              <li class="step step-accent text-base-content/40">
                 <div class="text-left ml-2">
                   <div class="text-xs uppercase tracking-widest font-bold text-primary">Objectif Final</div>
                   <div class="text-xl font-bold text-primary">{{ tKg }} kg</div>

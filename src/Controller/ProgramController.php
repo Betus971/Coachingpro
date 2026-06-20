@@ -33,8 +33,8 @@ class ProgramController extends AbstractController
 
         // Pesée de départ (poids max) pour calculer les jalons
         $startWeightLog = $weightRepo->findOneBy(['user' => $user], ['weightKg' => 'DESC']);
-        $startKg = $activeGoal ? (float) $activeGoal->getStartValue() : ($startWeightLog ? (float) $startWeightLog->getWeightKg() : 121.2);
-        $targetKg = $activeGoal ? (float) $activeGoal->getTargetValue() : 95.0;
+        $startKg = $activeGoal ? (float) $activeGoal->getStartValue() : ($startWeightLog ? (float) $startWeightLog->getWeightKg() : 0.0);
+        $targetKg = $activeGoal ? (float) $activeGoal->getTargetValue() : null;
 
         // Pesée actuelle (la plus récente)
         $currentWeightLog = $weightRepo->findOneBy(['user' => $user], ['loggedOn' => 'DESC']);
