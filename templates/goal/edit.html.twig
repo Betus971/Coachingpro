@@ -1,0 +1,85 @@
+{% extends 'base.html.twig' %}
+{% block title %}Mon objectif — CoachPro{% endblock %}
+
+{% set typeLabels = {
+  'weight_loss': 'Perte de poids', 'weight_gain': 'Prise de poids',
+  'body_fat': 'Masse grasse', 'muscle_gain': 'Prise de muscle', 'performance': 'Performance'
+} %}
+{% set modeLabels = {
+  'fixed_rate': 'Rythme fixe (l''IA ajuste l''échéance)',
+  'fixed_deadline': 'Échéance fixe (l''IA ajuste le rythme)',
+  'fixed_target': 'Cible fixe'
+} %}
+
+{% block body %}
+<div class="px-6 md:px-8 py-8 max-w-2xl">
+  <div class="mb-8">
+    <div class="section-tag mb-3">Objectif</div>
+    <h1 class="font-display text-4xl md:text-5xl">{{ goal ? 'MODIFIER MON OBJECTIF' : 'DÉFINIR MON OBJECTIF' }}</h1>
+    <p class="text-muted text-sm mt-2">Sert au suivi de progression, aux jalons et au calcul de tes macros (protéines dosées sur ton poids cible).</p>
+  </div>
+
+  <form action="{{ path('app_goal_save') }}" method="post" class="card-coach p-6 space-y-4">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="form-control">
+        <label class="label pb-1"><span class="label-text text-xs tracking-widest uppercase text-muted">Type</span></label>
+        <select name="type" class="select select-bordered bg-base-300 border-neutral">
+          {% for t in types %}
+            <option value="{{ t.value }}" {{ goal and goal.type.value == t.value ? 'selected' : (t.value == 'weight_loss' and not goal ? 'selected' : '') }}>{{ typeLabels[t.value] ?? t.value }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-control">
+        <label class="label pb-1"><span class="label-text text-xs tracking-widest uppercase text-muted">Mode d'ajustement IA</span></label>
+        <select name="mode" class="select select-bordered bg-base-300 border-neutral">
+          {% for m in modes %}
+            <option value="{{ m.value }}" {{ goal and goal.mode.value == m.value ? 'selected' : (m.value == 'fixed_rate' and not goal ? 'selected' : '') }}>{{ modeLabels[m.value] ?? m.value }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-control">
+        <label class="label pb-1"><span class="label-text text-xs tracking-widest uppercase text-muted">Poids de départ (kg)</span></label>
+        {% if goal %}
+          <input type="text" value="{{ goal.startValue }}" disabled class="input input-bordered bg-base-200 border-neutral text-muted">
+          <span class="text-xs text-muted mt-1">Figé à la création de l'objectif.</span>
+        {% else %}
+          <input type="number" name="start_value" step="0.1" min="30" max="350" required value="{{ currentWeight }}"
+                 class="input input-bordered bg-base-300 border-neutral focus:border-primary">
+        {% endif %}
+      </div>
+      <div class="form-control">
+        <label class="label pb-1"><span class="label-text text-xs tracking-widest uppercase text-muted">Poids cible (kg)</span></label>
+        <input type="number" name="target_value" step="0.1" min="30" max="350" required
+               value="{{ goal ? goal.targetValue : '' }}" placeholder="95"
+               class="input input-bordered bg-base-300 border-neutral focus:border-primary">
+      </div>
+
+      {% if not goal %}
+      <div class="form-control">
+        <label class="label pb-1"><span class="label-text text-xs tracking-widest uppercase text-muted">Date de début</span></label>
+        <input type="date" name="start_date" value="{{ 'now'|date('Y-m-d') }}"
+               class="input input-bordered bg-base-300 border-neutral focus:border-primary">
+      </div>
+      {% endif %}
+      <div class="form-control">
+        <label class="label pb-1"><span class="label-text text-xs tracking-widest uppercase text-muted">Échéance</span></label>
+        <input type="date" name="target_date" required
+               value="{{ goal ? goal.targetDate|date('Y-m-d') : '' }}"
+               class="input input-bordered bg-base-300 border-neutral focus:border-primary">
+      </div>
+      <div class="form-control">
+        <label class="label pb-1"><span class="label-text text-xs tracking-widest uppercase text-muted">Rythme cible (kg/sem, optionnel)</span></label>
+        <input type="number" name="weekly_rate" step="0.05" min="0" max="3"
+               value="{{ goal and goal.weeklyRate ? goal.weeklyRate : '' }}" placeholder="0.7"
+               class="input input-bordered bg-base-300 border-neutral focus:border-primary">
+      </div>
+    </div>
+
+    <div class="flex gap-4 pt-2">
+      <button type="submit" class="btn btn-primary flex-1 font-display tracking-widest">ENREGISTRER L'OBJECTIF</button>
+      <a href="{{ path('app_program_show') }}" class="btn btn-ghost">Annuler</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

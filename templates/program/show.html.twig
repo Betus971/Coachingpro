@@ -37,6 +37,10 @@
   </div>
 
   {# ── Calculateur nutritionnel (BMR / TDEE / macros) ─────────────────────── #}
+  <div class="flex justify-end">
+    <a href="{{ path('app_goal_edit') }}" class="btn btn-outline btn-primary btn-sm font-display tracking-widest">🎯 {{ activeGoal ? 'Modifier' : 'Définir' }} mon objectif</a>
+  </div>
+
   <div class="card-coach p-6">
     <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
       <h2 class="text-2xl font-display flex items-center gap-2">⚡ Besoins caloriques</h2>
