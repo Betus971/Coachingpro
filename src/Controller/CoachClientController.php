@@ -7,13 +7,20 @@ namespace App\Controller;
 use App\Entity\ClientInvitation;
 use App\Entity\User;
 use App\Repository\ClientInvitationRepository;
+use App\Repository\GoalRepository;
+use App\Repository\NutritionLogRepository;
+use App\Repository\WeightLogRepository;
+use App\Repository\WorkoutSessionRepository;
 use App\Service\InvitationMailer;
+use App\Service\Nutrition\NutritionCalculator;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
+use Symfony\UX\Chartjs\Builder\ChartBuilderInterface;
+use Symfony\UX\Chartjs\Model\Chart;
 
 /**
  * Espace coach : gestion de ses clients et des invitations.
@@ -31,6 +38,72 @@ class CoachClientController extends AbstractController
         return $this->render('coach/clients.html.twig', [
             'clients'     => $coach->getClients(),
             'invitations' => $invitations->findPendingForCoach($coach),
+        ]);
+    }
+
+    #[Route('/clients/{id}', name: 'app_coach_client_show', methods: ['GET'], requirements: ['id' => '[0-9a-fA-F-]{36}'])]
+    public function show(
+        User $client,
+        WeightLogRepository $weightRepo,
+        WorkoutSessionRepository $sessionRepo,
+        NutritionLogRepository $nutritionRepo,
+        GoalRepository $goalRepo,
+        NutritionCalculator $nutritionCalculator,
+        ChartBuilderInterface $chartBuilder,
+    ): Response {
+        // Le Voter autorise un coach à voir UNIQUEMENT ses propres clients.
+        $this->denyAccessUnlessGranted('VIEW', $client);
+
+        $activeGoal    = $goalRepo->findOpenForUser($client)[0] ?? null;
+        $lastWeight    = $weightRepo->findOneBy(['user' => $client], ['loggedOn' => 'DESC']);
+        $startWeight   = $weightRepo->findOneBy(['user' => $client], ['weightKg' => 'DESC']);
+        $recentWeights = array_reverse($weightRepo->findBy(['user' => $client], ['loggedOn' => 'DESC'], 12));
+        $history       = $weightRepo->findBy(['user' => $client], ['loggedOn' => 'DESC'], 8);
+        $sessions      = $sessionRepo->findBy(['user' => $client], ['performedAt' => 'DESC'], 6);
+        $nutrition     = $nutritionRepo->findBy(['user' => $client], ['loggedOn' => 'DESC'], 5);
+        $nutritionPlan = $nutritionCalculator->compute($client);
+
+        // Progression, sans aucune valeur en dur (null si données insuffisantes).
+        $startKg   = $activeGoal ? (float) $activeGoal->getStartValue() : ($startWeight ? (float) $startWeight->getWeightKg() : null);
+        $targetKg  = $activeGoal ? (float) $activeGoal->getTargetValue() : null;
+        $currentKg = $lastWeight ? (float) $lastWeight->getWeightKg() : $startKg;
+
+        $progress = null;
+        if ($startKg !== null && $targetKg !== null && $currentKg !== null && abs($startKg - $targetKg) > 0.01) {
+            $progress = (int) max(0, min(100, round((($startKg - $currentKg) / ($startKg - $targetKg)) * 100)));
+        }
+
+        $chart = null;
+        if (count($recentWeights) > 0) {
+            $chart = $chartBuilder->createChart(Chart::TYPE_LINE);
+            $chart->setData([
+                'labels' => array_map(fn ($w) => $w->getLoggedOn()->format('d/m'), $recentWeights),
+                'datasets' => [[
+                    'label'           => 'Poids (kg)',
+                    'backgroundColor' => '#f97316',
+                    'borderColor'     => '#f97316',
+                    'data'            => array_map(fn ($w) => $w->getWeightKg(), $recentWeights),
+                    'tension'         => 0.4,
+                ]],
+            ]);
+            $chart->setOptions([
+                'maintainAspectRatio' => false,
+                'plugins' => ['legend' => ['display' => false]],
+            ]);
+        }
+
+        return $this->render('coach/client_show.html.twig', [
+            'client'        => $client,
+            'activeGoal'    => $activeGoal,
+            'startKg'       => $startKg,
+            'targetKg'      => $targetKg,
+            'currentKg'     => $currentKg,
+            'progress'      => $progress,
+            'history'       => $history,
+            'sessions'      => $sessions,
+            'nutrition'     => $nutrition,
+            'nutritionPlan' => $nutritionPlan,
+            'chart'         => $chart,
         ]);
     }
 

@@ -28,7 +28,8 @@
     {% else %}
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {% for client in clients %}
-          <div class="card bg-base-100 border border-base-200 shadow-sm">
+          <a href="{{ path('app_coach_client_show', {id: client.id}) }}"
+             class="card bg-base-100 border border-base-200 shadow-sm hover:border-primary hover:shadow-md transition">
             <div class="card-body p-5">
               <div class="flex items-center gap-3">
                 <div class="avatar placeholder">
@@ -40,9 +41,10 @@
                   <div class="font-bold truncate">{{ client.firstName }} {{ client.lastName }}</div>
                   <div class="text-xs text-muted truncate">{{ client.email }}</div>
                 </div>
+                <i class="bi bi-chevron-right ml-auto text-base-content/30"></i>
               </div>
             </div>
-          </div>
+          </a>
         {% endfor %}
       </div>
     {% endif %}

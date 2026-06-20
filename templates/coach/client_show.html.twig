@@ -1,0 +1,155 @@
+{% extends 'base.html.twig' %}
+{% block title %}{{ client.firstName }} {{ client.lastName }} — CoachPro{% endblock %}
+
+{% block body %}
+<div class="px-2 md:px-4 py-6 max-w-5xl mx-auto space-y-8">
+
+  <div>
+    <a href="{{ path('app_coach_clients') }}" class="text-sm text-muted hover:text-primary"><i class="bi bi-arrow-left"></i> Retour aux clients</a>
+  </div>
+
+  {# ── En-tête client ──────────────────────────────────────────────────────── #}
+  <div class="flex flex-wrap items-center gap-4">
+    <div class="avatar placeholder">
+      <div class="bg-primary/10 text-primary rounded-full w-16">
+        <span class="font-display text-2xl">{{ client.firstName|first|upper }}{{ client.lastName|first|upper }}</span>
+      </div>
+    </div>
+    <div>
+      <h1 class="text-3xl font-display font-bold">{{ client.firstName }} {{ client.lastName }}</h1>
+      <div class="text-muted text-sm">{{ client.email }}{% if client.age %} · {{ client.age }} ans{% endif %}{% if client.heightCm %} · {{ client.heightCm }} cm{% endif %}</div>
+    </div>
+  </div>
+
+  {# ── Objectif & progression ──────────────────────────────────────────────── #}
+  <div class="card-coach p-6">
+    <h2 class="text-xl font-display flex items-center gap-2 mb-4"><i class="bi bi-bullseye text-primary"></i> Objectif</h2>
+    {% if activeGoal and targetKg is not null %}
+      <div class="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <div class="text-3xl font-display font-bold">{{ startKg|round }} → {{ targetKg|round }} kg</div>
+          <div class="text-sm text-muted mt-1">Actuel : <span class="font-bold text-base-content">{{ currentKg|round(1) }} kg</span> · échéance {{ activeGoal.targetDate|date('d/m/Y') }}</div>
+        </div>
+        {% if progress is not null %}
+          <div class="text-right">
+            <div class="text-2xl font-display font-bold text-primary">{{ progress }}%</div>
+            <div class="text-xs text-muted uppercase tracking-widest">progression</div>
+          </div>
+        {% endif %}
+      </div>
+      {% if progress is not null %}
+        <progress class="progress progress-primary w-full mt-4" value="{{ progress }}" max="100"></progress>
+      {% endif %}
+    {% else %}
+      <p class="text-sm text-muted">Aucun objectif défini pour ce client.</p>
+    {% endif %}
+  </div>
+
+  {# ── Courbe de poids ─────────────────────────────────────────────────────── #}
+  {% if chart %}
+    <div class="card-coach p-6">
+      <h2 class="text-xl font-display flex items-center gap-2 mb-4"><i class="bi bi-graph-down-arrow text-primary"></i> Évolution du poids</h2>
+      <div style="height: 260px;">{{ render_chart(chart) }}</div>
+    </div>
+  {% endif %}
+
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+    {# ── Historique pesées ─────────────────────────────────────────────────── #}
+    <div class="card-coach p-6">
+      <h2 class="text-xl font-display flex items-center gap-2 mb-4"><i class="bi bi-clipboard-data text-primary"></i> Dernières pesées</h2>
+      {% if history|length == 0 %}
+        <p class="text-sm text-muted">Aucune pesée enregistrée.</p>
+      {% else %}
+        <div class="overflow-x-auto">
+          <table class="table table-sm">
+            <thead><tr><th>Date</th><th>Poids</th><th>Graisse</th><th>IMC</th></tr></thead>
+            <tbody>
+              {% for w in history %}
+                <tr>
+                  <td>{{ w.loggedOn|date('d/m/Y') }}</td>
+                  <td class="font-bold">{{ w.weightKg }} kg</td>
+                  <td>{{ w.fatPercent ? w.fatPercent ~ '%' : '—' }}</td>
+                  <td>{{ w.bmi ?: '—' }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% endif %}
+    </div>
+
+    {# ── Séances récentes ──────────────────────────────────────────────────── #}
+    <div class="card-coach p-6">
+      <h2 class="text-xl font-display flex items-center gap-2 mb-4"><i class="bi bi-activity text-primary"></i> Séances récentes</h2>
+      {% if sessions|length == 0 %}
+        <p class="text-sm text-muted">Aucune séance enregistrée.</p>
+      {% else %}
+        <ul class="space-y-2">
+          {% for s in sessions %}
+            <li class="flex items-center justify-between p-3 bg-base-100 rounded-lg border border-base-200">
+              <div>
+                <div class="font-medium">{{ s.name }}</div>
+                <div class="text-xs text-muted">{{ s.performedAt|date('d/m/Y') }}{% if s.durationMinutes %} · {{ s.durationMinutes }} min{% endif %}</div>
+              </div>
+              {% if s.rpe %}<span class="badge badge-ghost font-display">RPE {{ s.rpe }}</span>{% endif %}
+            </li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    </div>
+  </div>
+
+  {# ── Nutrition ───────────────────────────────────────────────────────────── #}
+  <div class="card-coach p-6">
+    <h2 class="text-xl font-display flex items-center gap-2 mb-4"><i class="bi bi-egg-fried text-primary"></i> Nutrition</h2>
+
+    {% if nutritionPlan %}
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+        <div class="stat bg-base-100/50 rounded-2xl border border-base-200">
+          <div class="stat-title text-xs uppercase tracking-widest text-muted">Maintien</div>
+          <div class="stat-value text-lg">{{ nutritionPlan.tdee }}</div>
+          <div class="stat-desc">kcal</div>
+        </div>
+        <div class="stat bg-base-100/50 rounded-2xl border border-base-200">
+          <div class="stat-title text-xs uppercase tracking-widest text-muted">Cible</div>
+          <div class="stat-value text-lg text-success">{{ nutritionPlan.targetKcal }}</div>
+          <div class="stat-desc">−{{ nutritionPlan.deficitKcal }} kcal</div>
+        </div>
+        <div class="stat bg-base-100/50 rounded-2xl border border-base-200">
+          <div class="stat-title text-xs uppercase tracking-widest text-muted">Protéines</div>
+          <div class="stat-value text-lg text-secondary">{{ nutritionPlan.proteinsG }}g</div>
+        </div>
+        <div class="stat bg-base-100/50 rounded-2xl border border-base-200">
+          <div class="stat-title text-xs uppercase tracking-widest text-muted">Gluc / Lip</div>
+          <div class="text-sm mt-2"><span class="text-accent font-bold">{{ nutritionPlan.carbsG }}g</span> · <span class="text-primary font-bold">{{ nutritionPlan.fatsG }}g</span></div>
+        </div>
+      </div>
+    {% else %}
+      <p class="text-xs text-muted mb-4">Profil incomplet (taille, sexe, date de naissance, pesée) — calcul BMR/TDEE indisponible.</p>
+    {% endif %}
+
+    {% if nutrition|length > 0 %}
+      <div class="overflow-x-auto">
+        <table class="table table-sm">
+          <thead><tr><th>Date</th><th>Kcal</th><th>P</th><th>G</th><th>L</th></tr></thead>
+          <tbody>
+            {% for n in nutrition %}
+              <tr>
+                <td>{{ n.loggedOn|date('d/m/Y') }}</td>
+                <td class="font-bold">{{ n.kcal }}</td>
+                <td>{{ n.proteinsG }}g</td>
+                <td>{{ n.carbsG }}g</td>
+                <td>{{ n.fatsG }}g</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="text-sm text-muted">Aucun log nutritionnel.</p>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}
