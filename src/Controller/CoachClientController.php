@@ -262,25 +262,15 @@ class CoachClientController extends AbstractController
         }
 
         $action = null;
-        $reply  = $coach->chat($client, $message, [], $action);
+        $reply  = $coach->chatAboutClient($client, $message, [], $action);
 
         if (is_array($action)) {
-            try {
-                $type    = CoachActionType::tryFrom($action['type'] ?? '');
-                $summary = $type !== null ? $executor->describe($client, $type, $action['payload'] ?? []) : null;
-                if ($summary !== null) {
-                    $session->set($key, [
-                        'type'    => $action['type'],
-                        'payload' => $action['payload'] ?? [],
-                        'summary' => $summary,
-                    ]);
-                }
-            } catch (\InvalidArgumentException $e) {
-                $reply .= "\n\n(Action proposée non applicable : " . $e->getMessage() . ')';
-            }
+            // L'action porte déjà type/payload/summary : on la met en attente de confirmation.
+            $session->set($key, $action);
+        } else {
+            $session->set('coach_ia_reply_' . $client->getId(), $reply);
         }
 
-        $session->set('coach_ia_reply_' . $client->getId(), $reply);
         return $redirect;
     }
 

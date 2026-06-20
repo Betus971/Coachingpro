@@ -219,6 +219,77 @@ TXT;
         }
     }
 
+    /**
+     * Variante COACH→CLIENT : le coach interroge l'IA AU SUJET d'un de ses clients.
+     * Même machinerie (tool calling), mais prompt orienté rapport (3e personne) et
+     * actions appliquées au CLIENT (sujet = $client). proposedAction contient déjà
+     * type/payload/summary prêt à confirmer.
+     */
+    public function chatAboutClient(User $client, string $message, array $history = [], ?array &$proposedAction = null): string
+    {
+        if (empty($this->mistralApiKey)) {
+            return 'Le service IA n\'est pas configuré.';
+        }
+        if ($this->isOutOfScope($message)) {
+            return 'Je suis l\'assistant coach (sport & nutrition) : je ne peux pas aider là-dessus. Pose-moi une question sur le suivi de ce client.';
+        }
+
+        $messages = [['role' => 'system', 'content' => $this->buildClientReportContext($client)]];
+        foreach ($history as $msg) {
+            $messages[] = [
+                'role'    => $msg['role'] === 'model' ? 'assistant' : $msg['role'],
+                'content' => $msg['content'],
+            ];
+        }
+        $messages[] = ['role' => 'user', 'content' => $message];
+
+        try {
+            $response = $this->httpClient->request('POST', self::MISTRAL_URL, [
+                'headers' => [
+                    'Authorization' => 'Bearer ' . $this->mistralApiKey,
+                    'Content-Type'  => 'application/json',
+                ],
+                'json' => [
+                    'model'       => self::MODEL,
+                    'messages'    => $messages,
+                    'temperature' => 0.5,
+                    'max_tokens'  => 1024,
+                    'tools'       => self::TOOLS,
+                    'tool_choice' => 'auto',
+                ],
+                'timeout' => 20,
+            ]);
+
+            if ($response->getStatusCode() === 429) {
+                return 'Quota IA atteint. Réessaie dans quelques instants.';
+            }
+
+            $data   = $response->toArray();
+            $choice = $data['choices'][0]['message'] ?? [];
+
+            if (!empty($choice['tool_calls'])) {
+                $fn   = $choice['tool_calls'][0]['function'] ?? [];
+                $type = CoachActionType::tryFrom($fn['name'] ?? '');
+                $args = json_decode($fn['arguments'] ?? '{}', true);
+                if ($type !== null && is_array($args)) {
+                    try {
+                        $summary = $this->actionExecutor->describe($client, $type, $args);
+                        $proposedAction = ['type' => $type->value, 'payload' => $args, 'summary' => $summary];
+
+                        return $summary;
+                    } catch (\InvalidArgumentException $e) {
+                        return 'Action proposée non applicable : ' . $e->getMessage();
+                    }
+                }
+            }
+
+            return $choice['content'] ?? 'Pas de réponse générée, réessaie.';
+        } catch (\Throwable $e) {
+            error_log('Mistral CoachAboutClient Error: ' . $e->getMessage());
+            return 'Erreur de communication avec l\'IA. Réessaie dans un moment.';
+        }
+    }
+
     public function getDashboardAdvice(User $user): ?string
     {
         return $this->getCached($user, 'dashboard', fn () => $this->buildDashboardPrompt($user));
@@ -435,6 +506,65 @@ PROMPT;
             $plan->carbsG,
             $plan->fatsG,
         );
+    }
+
+    /**
+     * Contexte système pour le mode coach→client : fiche factuelle du client,
+     * instructions de ton « rapport » (3e personne, vouvoiement du coach).
+     */
+    private function buildClientReportContext(User $client): string
+    {
+        $name        = trim($client->getFirstName() . ' ' . $client->getLastName());
+        $guardrails  = self::GUARDRAILS;
+        $goalContext = $this->buildGoalContext($client);
+        $nutrition   = $this->buildNutritionPlanContext($client);
+
+        $weightLogs = $this->weightRepo->findBy(['user' => $client], ['loggedOn' => 'DESC'], 6);
+        $lastWeight = $weightLogs[0] ?? null;
+        $currentKg  = $lastWeight ? $lastWeight->getWeightKg() . ' kg' : 'inconnu';
+        $weightHistory = empty($weightLogs)
+            ? 'Aucune pesée enregistrée.'
+            : implode(', ', array_map(
+                fn ($l) => sprintf('%s: %.1f kg', $l->getLoggedOn()->format('d/m'), $l->getWeightKg()),
+                array_reverse($weightLogs)
+            ));
+
+        $sessions    = $this->sessionRepo->findBy(['user' => $client], ['performedAt' => 'DESC'], 5);
+        $sessionInfo = empty($sessions)
+            ? 'Aucune séance enregistrée.'
+            : implode(', ', array_map(
+                fn ($s) => sprintf('%s (%s%s)', $s->getName(), $s->getPerformedAt()->format('d/m'), $s->getRpe() ? ' RPE:' . $s->getRpe() : ''),
+                $sessions
+            ));
+
+        $todayNutrition = $this->nutritionRepo->findOneBy([
+            'user'     => $client,
+            'loggedOn' => new \DateTimeImmutable('today'),
+        ]);
+        $nutritionInfo = $todayNutrition
+            ? sprintf('%d kcal | P:%dg G:%dg L:%dg',
+                $todayNutrition->getKcal(),
+                $todayNutrition->getProteinsG(),
+                $todayNutrition->getCarbsG(),
+                $todayNutrition->getFatsG())
+            : 'Non renseignée aujourd\'hui.';
+
+        return <<<PROMPT
+Tu es l'assistant analytique d'un COACH sportif et nutritionnel. Tu t'adresses AU COACH, jamais au client. Parle du client à la 3e personne (« il/elle », « son objectif »). Style : rapport professionnel, synthétique, factuel et orienté décision — pas de motivation à la 2e personne, jamais de « tu » adressé au client.
+{$guardrails}
+
+FICHE CLIENT — {$name}
+OBJECTIF :
+{$goalContext}
+
+- Poids actuel : {$currentKg}
+- Historique poids récent : {$weightHistory}
+- Séances récentes : {$sessionInfo}
+- Nutrition du jour : {$nutritionInfo}
+{$nutrition}
+
+Si le coach demande un ajustement (objectif, macros, durée de programme), propose l'action correspondante via les outils : elle s'appliquera à ce client après confirmation du coach. Sinon, fournis une analyse courte et des recommandations concrètes et actionnables.
+PROMPT;
     }
 
     private function buildUserContext(User $user): string
