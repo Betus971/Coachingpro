@@ -60,6 +60,14 @@
             Programme
           </a>
         </li>
+        {% if is_granted('ROLE_COACH') %}
+        <li>
+          <a href="{{ path('app_coach_clients') }}" class="{{ current starts with 'app_coach' ? 'active' : '' }}">
+            <i class="bi bi-people-fill"></i>
+            Mes clients
+          </a>
+        </li>
+        {% endif %}
       </ul>
     </div>
 
@@ -115,6 +123,7 @@
           <li><a href="{{ path('app_nutrition_index') }}" class="{{ current starts with 'app_nutrition' ? 'active' : '' }}">Nutrition</a></li>
           <li><a href="{{ path('app_analytics_index') }}" class="{{ current starts with 'app_analytics' ? 'active' : '' }}">Stats & PRs</a></li>
           <li><a href="{{ path('app_program_show') }}" class="{{ current starts with 'app_program' ? 'active' : '' }}">Programme</a></li>
+          {% if is_granted('ROLE_COACH') %}<li><a href="{{ path('app_coach_clients') }}" class="{{ current starts with 'app_coach' ? 'active' : '' }}">Mes clients</a></li>{% endif %}
           <li><hr class="my-1 border-base-200"></li>
           <li><a href="{{ path('app_profile') }}">Mon Profil</a></li>
           <li><a href="{{ path('app_logout') }}" class="text-error">Déconnexion</a></li>
