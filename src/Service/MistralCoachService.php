@@ -13,6 +13,7 @@ use App\Repository\GoalRepository;
 use App\Repository\NutritionLogRepository;
 use App\Repository\WeightLogRepository;
 use App\Repository\WorkoutSessionRepository;
+use App\Service\Nutrition\NutritionCalculator;
 use Psr\Cache\CacheItemPoolInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
@@ -127,6 +128,7 @@ TXT;
         private readonly NutritionLogRepository   $nutritionRepo,
         private readonly GoalRepository           $goalRepo,
         private readonly CoachActionExecutor      $actionExecutor,
+        private readonly NutritionCalculator      $nutritionCalculator,
         private readonly ?string                  $mistralApiKey,
     ) {}
 
@@ -409,6 +411,32 @@ PROMPT;
         return implode("\n", $lines);
     }
 
+    /**
+     * Besoins caloriques calculés (BMR/TDEE/macros) injectés tels quels :
+     * le LLM EXPLIQUE ces chiffres, il ne les recalcule jamais. Vide si profil incomplet.
+     */
+    private function buildNutritionPlanContext(User $user): string
+    {
+        $plan = $this->nutritionCalculator->compute($user);
+        if ($plan === null) {
+            return '';
+        }
+
+        return sprintf(
+            "BESOINS CALORIQUES (Mifflin-St Jeor, déterministe — utilise EXACTEMENT ces chiffres, ne recalcule pas) :\n"
+            . "- BMR : %d kcal | TDEE (%s) : %d kcal\n"
+            . "- Cible sèche : %d kcal (déficit %d) | Macros conseillées : %dg prot, %dg gluc, %dg lip",
+            $plan->bmr,
+            $plan->activity->label(),
+            $plan->tdee,
+            $plan->targetKcal,
+            $plan->deficitKcal,
+            $plan->proteinsG,
+            $plan->carbsG,
+            $plan->fatsG,
+        );
+    }
+
     private function buildUserContext(User $user): string
     {
         $weightLogs  = $this->weightRepo->findBy(['user' => $user], ['loggedOn' => 'DESC'], 5);
@@ -449,8 +477,9 @@ PROMPT;
             )
             : 'Non renseignée aujourd\'hui.';
 
-        $guardrails  = self::GUARDRAILS;
-        $goalContext = $this->buildGoalContext($user);
+        $guardrails    = self::GUARDRAILS;
+        $goalContext   = $this->buildGoalContext($user);
+        $nutritionPlan = $this->buildNutritionPlanContext($user);
 
         return <<<PROMPT
 Tu es un coach sportif et nutritionnel expert, personnel et bienveillant. Tu réponds en français, de manière directe et motivante. Tu adaptes tes réponses au profil de l'utilisateur ci-dessous.
@@ -466,6 +495,7 @@ OBJECTIF ACTIF :
 - Historique poids récent : {$weightHistory}
 - Séances récentes : {$sessionInfo}
 - Nutrition aujourd'hui : {$nutritionInfo}
+{$nutritionPlan}
 
 Règles de réponse :
 - Sois concis (3-5 lignes max sauf si l'utilisateur demande une explication longue)

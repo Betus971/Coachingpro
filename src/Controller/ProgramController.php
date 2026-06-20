@@ -5,16 +5,19 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Entity\User;
+use App\Enum\ActivityLevel;
 use App\Repository\GoalRepository;
 use App\Repository\ProgramAssignmentRepository;
+use App\Service\Nutrition\NutritionCalculator;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
 #[Route('/programme', name: 'app_program_show')]
 class ProgramController extends AbstractController
 {
-    public function __invoke(ProgramAssignmentRepository $assignmentRepo, \App\Repository\WeightLogRepository $weightRepo, GoalRepository $goalRepo): Response
+    public function __invoke(Request $request, ProgramAssignmentRepository $assignmentRepo, \App\Repository\WeightLogRepository $weightRepo, GoalRepository $goalRepo, NutritionCalculator $nutritionCalculator): Response
     {
         /** @var User $user */
         $user = $this->getUser();
@@ -40,13 +43,19 @@ class ProgramController extends AbstractController
         // Jours semaine ISO
         $dayNames = [1 => 'LUNDI', 2 => 'MARDI', 3 => 'MERCREDI', 4 => 'JEUDI', 5 => 'VENDREDI', 6 => 'SAMEDI', 7 => 'DIMANCHE'];
 
+        // Calcul nutritionnel (BMR/TDEE/macros). Override d'activité via ?activity=...
+        $override = ActivityLevel::tryFrom((string) $request->query->get('activity', ''));
+        $nutritionPlan = $nutritionCalculator->compute($user, $override);
+
         return $this->render('program/show.html.twig', [
-            'assignment'  => $active,
-            'activeGoal'  => $activeGoal,
-            'dayNames'    => $dayNames,
-            'startKg'     => $startKg,
-            'targetKg'    => $targetKg,
-            'currentKg'   => $currentKg,
+            'assignment'     => $active,
+            'activeGoal'     => $activeGoal,
+            'dayNames'       => $dayNames,
+            'startKg'        => $startKg,
+            'targetKg'       => $targetKg,
+            'currentKg'      => $currentKg,
+            'nutritionPlan'  => $nutritionPlan,
+            'activityLevels' => ActivityLevel::cases(),
         ]);
     }
 }
