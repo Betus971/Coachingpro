@@ -235,5 +235,40 @@
     {% endif %}
   </div>
 
+  {# ── Coach IA sur ce client ──────────────────────────────────────────────── #}
+  <div class="card-coach p-6">
+    <h2 class="text-xl font-display flex items-center gap-2 mb-4"><i class="bi bi-robot text-primary"></i> Coach IA — {{ client.firstName }}</h2>
+
+    {% if iaReply %}
+      <div class="bg-base-100 border border-base-200 rounded-lg p-4 text-sm whitespace-pre-line mb-4">{{ iaReply }}</div>
+    {% endif %}
+
+    {% if pendingAction %}
+      <div class="alert alert-warning shadow-sm mb-3"><span><i class="bi bi-exclamation-triangle"></i> {{ pendingAction.summary }}</span></div>
+      <div class="flex gap-2">
+        <form method="post" action="{{ path('app_coach_client_ia', {id: client.id}) }}">
+          <input type="hidden" name="_token" value="{{ csrf_token('ia' ~ client.id) }}">
+          <input type="hidden" name="confirm" value="1">
+          <button class="btn btn-success btn-sm"><i class="bi bi-check2"></i> Confirmer & appliquer</button>
+        </form>
+        <form method="post" action="{{ path('app_coach_client_ia', {id: client.id}) }}">
+          <input type="hidden" name="_token" value="{{ csrf_token('ia' ~ client.id) }}">
+          <input type="hidden" name="cancel" value="1">
+          <button class="btn btn-ghost btn-sm">Annuler</button>
+        </form>
+      </div>
+    {% else %}
+      <form method="post" action="{{ path('app_coach_client_ia', {id: client.id}) }}" class="space-y-2">
+        <input type="hidden" name="_token" value="{{ csrf_token('ia' ~ client.id) }}">
+        <textarea name="message" rows="2" required
+                  placeholder="Ex : « réduis ses glucides de 30 g », « repousse l'échéance de 2 semaines », « analyse sa progression »…"
+                  class="textarea textarea-bordered w-full bg-base-100"></textarea>
+        <button class="btn btn-primary btn-sm"><i class="bi bi-send"></i> Demander au Coach IA</button>
+      </form>
+    {% endif %}
+
+    <p class="text-xs text-muted mt-3">L'IA propose, tu confirmes. Les ajustements (objectif, macros, durée de programme) sont appliqués <strong>à ce client</strong> et audités.</p>
+  </div>
+
 </div>
 {% endblock %}
