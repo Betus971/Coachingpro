@@ -14,6 +14,7 @@ use App\Repository\ChallengeRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
@@ -39,10 +40,75 @@ class ChallengeController extends AbstractController
 
         return $this->render('challenge/index.html.twig', [
             'challenges' => $challengeRepo->findBy(['isPreset' => true], ['category' => 'ASC']),
+            'custom'     => $challengeRepo->findCustomForUser($user),
             'active'     => $active,
             'history'    => $history,
             'activeIds'  => $activeIds,
         ]);
+    }
+
+    #[Route('/creer', name: 'create', methods: ['POST'])]
+    public function create(
+        Request $request,
+        ChallengeParticipationRepository $participationRepo,
+        EntityManagerInterface $em,
+    ): Response {
+        /** @var User $user */
+        $user = $this->getUser();
+
+        $title    = trim((string) $request->request->get('title', ''));
+        $emoji    = trim((string) $request->request->get('emoji', '🎯'));
+        $desc     = trim((string) $request->request->get('description', ''));
+        $duration = max(1, min(365, (int) $request->request->get('duration', 30)));
+        $category = $request->request->get('category', 'lifestyle');
+
+        if ($title === '') {
+            $this->addFlash('error', 'Le titre du défi est obligatoire.');
+            return $this->redirectToRoute('app_challenge_index');
+        }
+
+        if (!in_array($category, ['nutrition', 'fitness', 'lifestyle', 'mindset'], true)) {
+            $category = 'lifestyle';
+        }
+
+        $challenge = (new Challenge())
+            ->setTitle($title)
+            ->setEmoji($emoji ?: '🎯')
+            ->setDescription($desc ?: "Défi personnel : $title")
+            ->setDurationDays($duration)
+            ->setCategory($category)
+            ->setIsPreset(false)
+            ->setCreatedBy($user);
+
+        $participation = (new ChallengeParticipation())
+            ->setUser($user)
+            ->setChallenge($challenge);
+
+        $em->persist($challenge);
+        $em->persist($participation);
+        $em->flush();
+
+        $this->addFlash('success', "Défi créé ! C'est parti pour {$duration} jours 🔥");
+        return $this->redirectToRoute('app_challenge_show', ['id' => $participation->getId()]);
+    }
+
+    #[Route('/participation/{id}/supprimer-defi', name: 'delete_custom', methods: ['POST'])]
+    public function deleteCustomChallenge(
+        ChallengeParticipation $participation,
+        EntityManagerInterface $em,
+    ): Response {
+        $this->assertOwner($participation);
+
+        $challenge = $participation->getChallenge();
+        if ($challenge->isPreset()) {
+            throw $this->createAccessDeniedException('Les défis système ne peuvent pas être supprimés.');
+        }
+
+        $em->remove($challenge); // cascade supprime participation + check-ins
+        $em->flush();
+
+        $this->addFlash('success', 'Défi personnel supprimé.');
+        return $this->redirectToRoute('app_challenge_index');
     }
 
     #[Route('/{id}/rejoindre', name: 'join', methods: ['POST'])]
@@ -77,7 +143,7 @@ class ChallengeController extends AbstractController
         $checkedSet  = array_flip($participation->getCheckedDays());
         $daysElapsed = $participation->getDaysElapsed();
         $duration    = $participation->getChallenge()->getDurationDays();
-        $milestones  = [7, 14, 21, $duration];
+        $milestones  = $this->computeMilestones($duration);
 
         $days = [];
         for ($d = 1; $d <= $duration; $d++) {
@@ -92,6 +158,7 @@ class ChallengeController extends AbstractController
         return $this->render('challenge/show.html.twig', [
             'participation' => $participation,
             'days'          => $days,
+            'milestones'    => $milestones,
             'streak'        => $participation->getCurrentStreak(),
             'progress'      => $participation->getProgressPercent(),
             'checkedCount'  => count($participation->getCheckIns()),
@@ -141,7 +208,7 @@ class ChallengeController extends AbstractController
             $checked = true;
         }
 
-        $milestones = [7, 14, 21, $duration];
+        $milestones = $this->computeMilestones($duration);
 
         return $this->json([
             'checked'     => $checked,
@@ -166,6 +233,18 @@ class ChallengeController extends AbstractController
 
         $this->addFlash('info', 'Défi abandonné. Tu peux toujours en recommencer un !');
         return $this->redirectToRoute('app_challenge_index');
+    }
+
+    /** Milestones proportionnels (25 %, 50 %, 75 %, 100 %), dédoublonnés. */
+    private function computeMilestones(int $duration): array
+    {
+        $raw = [
+            (int) round($duration * 0.25),
+            (int) round($duration * 0.50),
+            (int) round($duration * 0.75),
+            $duration,
+        ];
+        return array_values(array_unique(array_filter($raw, fn($m) => $m >= 1)));
     }
 
     private function assertOwner(ChallengeParticipation $participation): void

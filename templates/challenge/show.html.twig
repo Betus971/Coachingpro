@@ -195,10 +195,10 @@
       </div>
       <div class="flex justify-between text-xs text-base-content/40 mt-1">
         <span>Début</span>
-        <span>Jour 7 🔥</span>
-        <span>Jour 14 ⭐</span>
-        <span>Jour 21 💪</span>
-        <span>Fin 🏆</span>
+        {% set milestoneIcons = ['🔥','⭐','💪','🏆'] %}
+        {% for i, m in milestones %}
+          <span>J.{{ m }} {{ milestoneIcons[i] ?? '🏅' }}</span>
+        {% endfor %}
       </div>
     </div>
 
@@ -267,13 +267,21 @@
 
 {# ── Abandon ───────────────────────────────────────────────────────────────── #}
 {% if participation.status == 'active' %}
-  <div class="flex justify-end mt-2">
+  <div class="flex justify-end gap-2 mt-2">
     <form method="post" action="{{ path('app_challenge_abandon', {id: participation.id}) }}"
           onsubmit="return confirm('Abandonner ce défi ? Tu peux toujours en recommencer un !')">
       <button type="submit" class="btn btn-ghost btn-sm text-error gap-1">
-        🏳 Abandonner le défi
+        🏳 Abandonner
       </button>
     </form>
+    {% if not participation.challenge.preset %}
+      <form method="post" action="{{ path('app_challenge_delete_custom', {id: participation.id}) }}"
+            onsubmit="return confirm('Supprimer définitivement ce défi personnalisé ?')">
+        <button type="submit" class="btn btn-ghost btn-sm text-error gap-1">
+          🗑 Supprimer le défi
+        </button>
+      </form>
+    {% endif %}
   </div>
 {% endif %}
 
