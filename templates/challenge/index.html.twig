@@ -1,41 +1,154 @@
 {% extends 'base.html.twig' %}
-{% block title %}Défis 30 jours — CoachPro{% endblock %}
+{% block title %}Défis — CoachPro{% endblock %}
 
 {% block body %}
 
-{# ── CSS animations ─────────────────────────────────────────────────────── #}
+{# ── CSS ─────────────────────────────────────────────────────────────────── #}
 <style>
-@keyframes challengeParticleFly {
-  0%   { transform: translate(0,0) scale(1); opacity: 1; }
-  100% { transform: translate(var(--dx), var(--dy)) scale(0); opacity: 0; }
-}
 @keyframes anim-pop {
   0%   { transform: scale(1); }
   35%  { transform: scale(1.35) rotate(-4deg); }
   65%  { transform: scale(.9) rotate(3deg); }
   100% { transform: scale(1); }
 }
-@keyframes anim-streak-pop {
-  0%   { transform: scale(1); color: inherit; }
-  50%  { transform: scale(1.5); color: #f59e0b; }
-  100% { transform: scale(1); color: inherit; }
-}
-.anim-pop       { animation: anim-pop .5s ease both; }
-.anim-streak-pop{ animation: anim-streak-pop .4s ease both; }
+.anim-pop { animation: anim-pop .5s ease both; }
 </style>
 
 {# ── Header ──────────────────────────────────────────────────────────────── #}
 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-8">
   <div>
-    <h1 class="text-3xl font-extrabold tracking-tight">Défis <span class="text-warning">30 jours</span> 🔥</h1>
+    <h1 class="text-3xl font-extrabold tracking-tight">Défis 🔥</h1>
     <p class="text-base-content/60 mt-1">Relève un défi, coche chaque jour, construis une habitude.</p>
   </div>
-  {% if active|length > 0 %}
-    <div class="badge badge-warning badge-lg gap-1 font-bold">
-      🎯 {{ active|length }} défi{{ active|length > 1 ? 's' : '' }} en cours
-    </div>
-  {% endif %}
+  <div class="flex items-center gap-3">
+    {% if active|length > 0 %}
+      <div class="badge badge-warning badge-lg gap-1 font-bold">
+        🎯 {{ active|length }} en cours
+      </div>
+    {% endif %}
+    {# ── Bouton Créer mon défi ── #}
+    <label for="modal-create-challenge" class="btn btn-primary gap-2 font-bold">
+      <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+      </svg>
+      Créer mon défi
+    </label>
+  </div>
 </div>
+
+{# ── Modal : Créer un défi personnalisé ──────────────────────────────────── #}
+<input type="checkbox" id="modal-create-challenge" class="modal-toggle"/>
+<div class="modal modal-bottom sm:modal-middle" role="dialog">
+  <div class="modal-box max-w-lg">
+    <label for="modal-create-challenge"
+           class="btn btn-sm btn-circle btn-ghost absolute right-3 top-3">✕</label>
+    <h3 class="text-xl font-extrabold mb-1">Créer mon propre défi ✨</h3>
+    <p class="text-sm text-base-content/60 mb-5">Définis ta règle, ta durée, et go.</p>
+
+    <form method="post" action="{{ path('app_challenge_create') }}" class="space-y-4">
+
+      {# Emoji + Titre #}
+      <div class="flex gap-2 items-start">
+        <div>
+          <label class="label label-text text-xs pb-1">Emoji</label>
+          <input type="text" name="emoji" value="🎯"
+                 maxlength="4" placeholder="🎯"
+                 class="input input-bordered w-16 text-center text-2xl"
+                 title="Colle ou tape un emoji">
+        </div>
+        <div class="flex-1">
+          <label class="label label-text text-xs pb-1">Titre du défi <span class="text-error">*</span></label>
+          <input type="text" name="title" required maxlength="100"
+                 placeholder="ex : Pas de café pendant 21 jours"
+                 class="input input-bordered w-full">
+        </div>
+      </div>
+
+      {# Description #}
+      <div>
+        <label class="label label-text text-xs pb-1">Description (optionnel)</label>
+        <textarea name="description" rows="2" maxlength="500"
+                  placeholder="Décris ta règle, pourquoi tu le fais..."
+                  class="textarea textarea-bordered w-full resize-none"></textarea>
+      </div>
+
+      {# Durée #}
+      <div>
+        <label class="label label-text text-xs pb-1">Durée</label>
+        <div class="flex flex-wrap gap-2" id="duration-pills">
+          {% for d in [7, 14, 21, 30, 60, 90] %}
+            <label class="cursor-pointer">
+              <input type="radio" name="duration" value="{{ d }}"
+                     class="hidden peer" {{ d == 30 ? 'checked' : '' }}>
+              <span class="badge badge-lg peer-checked:badge-primary peer-checked:font-bold transition-colors">
+                {{ d }}j
+              </span>
+            </label>
+          {% endfor %}
+          <label class="cursor-pointer flex items-center gap-1.5">
+            <input type="radio" name="duration" value="custom" id="duration-custom-radio" class="hidden peer">
+            <span class="badge badge-lg peer-checked:badge-primary peer-checked:font-bold transition-colors">
+              Autre
+            </span>
+          </label>
+          <input type="number" id="duration-custom-input" name="duration_custom"
+                 min="1" max="365" placeholder="nb jours"
+                 class="input input-bordered input-sm w-24 hidden">
+        </div>
+      </div>
+
+      {# Catégorie #}
+      <div>
+        <label class="label label-text text-xs pb-1">Catégorie</label>
+        <div class="flex flex-wrap gap-2">
+          {% for val, label in {'nutrition': '🥗 Nutrition', 'fitness': '💪 Fitness', 'lifestyle': '🌿 Lifestyle', 'mindset': '🧘 Mindset'} %}
+            <label class="cursor-pointer">
+              <input type="radio" name="category" value="{{ val }}"
+                     class="hidden peer" {{ val == 'lifestyle' ? 'checked' : '' }}>
+              <span class="badge badge-lg peer-checked:badge-secondary peer-checked:font-bold transition-colors">
+                {{ label }}
+              </span>
+            </label>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="modal-action mt-6 pt-4 border-t border-base-300">
+        <label for="modal-create-challenge" class="btn btn-ghost">Annuler</label>
+        <button type="submit" class="btn btn-primary gap-2 font-bold">
+          🚀 Lancer le défi
+        </button>
+      </div>
+    </form>
+  </div>
+  <label class="modal-backdrop" for="modal-create-challenge"></label>
+</div>
+
+{# Script : champ durée personnalisé #}
+<script>
+(function () {
+  const radio  = document.getElementById('duration-custom-radio');
+  const input  = document.getElementById('duration-custom-input');
+  const form   = radio?.closest('form');
+
+  radio?.addEventListener('change', () => {
+    input.classList.toggle('hidden', !radio.checked);
+    if (radio.checked) input.focus();
+  });
+
+  document.querySelectorAll('#duration-pills input[type=radio]:not(#duration-custom-radio)')
+    .forEach(r => r.addEventListener('change', () => {
+      input.classList.add('hidden');
+    }));
+
+  form?.addEventListener('submit', () => {
+    if (radio?.checked && input.value) {
+      // Override the "custom" value with the actual number
+      radio.value = input.value;
+    }
+  });
+})();
+</script>
 
 {# ── Défis actifs ─────────────────────────────────────────────────────────── #}
 {% if active|length > 0 %}
@@ -51,7 +164,12 @@
           <div class="card-body p-5">
             <div class="flex items-start justify-between gap-2">
               <div>
-                <span class="text-3xl">{{ p.challenge.emoji }}</span>
+                <div class="flex items-center gap-2">
+                  <span class="text-3xl">{{ p.challenge.emoji }}</span>
+                  {% if not p.challenge.preset %}
+                    <span class="badge badge-ghost badge-xs">Perso</span>
+                  {% endif %}
+                </div>
                 <h3 class="font-bold mt-1 group-hover:text-warning transition-colors">{{ p.challenge.title }}</h3>
               </div>
               <div class="text-right shrink-0">
@@ -70,7 +188,8 @@
               </div>
             </div>
             <div class="mt-2 text-xs text-base-content/50">
-              Démarré le {{ p.startedAt|date('d/m/Y') }} · {{ p.daysRemaining }} jour{{ p.daysRemaining > 1 ? 's' : '' }} restant{{ p.daysRemaining > 1 ? 's' : '' }}
+              Démarré le {{ p.startedAt|date('d/m/Y') }} ·
+              {{ p.daysRemaining }} jour{{ p.daysRemaining > 1 ? 's' : '' }} restant{{ p.daysRemaining > 1 ? 's' : '' }}
             </div>
           </div>
         </a>
@@ -79,10 +198,47 @@
   </section>
 {% endif %}
 
-{# ── Catalogue des défis ─────────────────────────────────────────────────── #}
+{# ── Mes défis personnels ─────────────────────────────────────────────────── #}
+{% if custom|length > 0 %}
+  <section class="mb-10">
+    <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
+      <span class="text-2xl">🛠</span> Mes défis perso
+    </h2>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      {% for challenge in custom %}
+        {% set isActive = challenge.id.toRfc4122 in activeIds %}
+        <div class="card bg-base-100 shadow border border-primary/30 {{ isActive ? 'opacity-60' : 'hover:shadow-md hover:-translate-y-0.5 transition-all' }}">
+          <div class="card-body p-5">
+            <div class="flex items-center gap-3 mb-2">
+              <span class="text-4xl">{{ challenge.emoji }}</span>
+              <div class="flex-1 min-w-0">
+                <h3 class="font-bold leading-tight truncate">{{ challenge.title }}</h3>
+                <span class="badge badge-ghost badge-xs mt-0.5">{{ challenge.durationDays }} jours</span>
+              </div>
+            </div>
+            {% if challenge.description %}
+              <p class="text-sm text-base-content/60 mb-4">{{ challenge.description }}</p>
+            {% endif %}
+            {% if isActive %}
+              <div class="btn btn-sm btn-disabled w-full">✓ En cours</div>
+            {% else %}
+              <form method="post" action="{{ path('app_challenge_join', {id: challenge.id}) }}">
+                <button type="submit" class="btn btn-sm btn-primary w-full gap-2 font-bold">
+                  🚀 Relancer
+                </button>
+              </form>
+            {% endif %}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </section>
+{% endif %}
+
+{# ── Catalogue des défis présets ─────────────────────────────────────────── #}
 <section class="mb-10">
   <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
-    <span class="text-2xl">🎯</span> Choisir un défi
+    <span class="text-2xl">🎯</span> Défis du catalogue
   </h2>
 
   {% set categories = {
@@ -123,8 +279,7 @@
                 <div class="btn btn-sm btn-disabled w-full">✓ En cours</div>
               {% else %}
                 <form method="post" action="{{ path('app_challenge_join', {id: challenge.id}) }}">
-                  <button type="submit"
-                          class="btn btn-sm btn-primary w-full gap-2 font-bold">
+                  <button type="submit" class="btn btn-sm btn-primary w-full gap-2 font-bold">
                     🚀 Relever le défi
                   </button>
                 </form>

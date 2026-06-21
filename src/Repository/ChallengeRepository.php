@@ -17,4 +17,16 @@ class ChallengeRepository extends ServiceEntityRepository
     {
         parent::__construct($registry, Challenge::class);
     }
+
+    /** @return Challenge[] Défis personnalisés créés par cet utilisateur. */
+    public function findCustomForUser(\App\Entity\User $user): array
+    {
+        return $this->createQueryBuilder('c')
+            ->where('c.createdBy = :user')
+            ->andWhere('c.isPreset = false')
+            ->setParameter('user', $user)
+            ->orderBy('c.createdAt', 'DESC')
+            ->getQuery()
+            ->getResult();
+    }
 }

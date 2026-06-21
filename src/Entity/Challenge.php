@@ -36,6 +36,11 @@ class Challenge
     #[ORM\Column]
     private bool $isPreset = true;
 
+    /** Null = défi système, sinon = créateur du défi personnalisé. */
+    #[ORM\ManyToOne(targetEntity: User::class)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'CASCADE')]
+    private ?User $createdBy = null;
+
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
 
@@ -63,6 +68,8 @@ class Challenge
     public function setCategory(string $c): self { $this->category = $c; return $this; }
     public function isPreset(): bool { return $this->isPreset; }
     public function setIsPreset(bool $p): self { $this->isPreset = $p; return $this; }
+    public function getCreatedBy(): ?User { return $this->createdBy; }
+    public function setCreatedBy(?User $u): self { $this->createdBy = $u; return $this; }
     public function getCreatedAt(): \DateTimeImmutable { return $this->createdAt; }
 
     /** @return Collection<int, ChallengeParticipation> */
