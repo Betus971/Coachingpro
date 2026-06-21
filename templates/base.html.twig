@@ -60,6 +60,12 @@
             Programme
           </a>
         </li>
+        <li>
+          <a href="{{ path('app_challenge_index') }}" class="{{ current starts with 'app_challenge' ? 'active' : '' }}">
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/></svg>
+            Défis
+          </a>
+        </li>
         {% if is_granted('ROLE_COACH') %}
         <li>
           <a href="{{ path('app_coach_clients') }}" class="{{ current starts with 'app_coach' ? 'active' : '' }}">
@@ -123,6 +129,7 @@
           <li><a href="{{ path('app_nutrition_index') }}" class="{{ current starts with 'app_nutrition' ? 'active' : '' }}">Nutrition</a></li>
           <li><a href="{{ path('app_analytics_index') }}" class="{{ current starts with 'app_analytics' ? 'active' : '' }}">Stats & PRs</a></li>
           <li><a href="{{ path('app_program_show') }}" class="{{ current starts with 'app_program' ? 'active' : '' }}">Programme</a></li>
+          <li><a href="{{ path('app_challenge_index') }}" class="{{ current starts with 'app_challenge' ? 'active' : '' }}">Défis 🔥</a></li>
           {% if is_granted('ROLE_COACH') %}<li><a href="{{ path('app_coach_clients') }}" class="{{ current starts with 'app_coach' ? 'active' : '' }}">Mes clients</a></li>{% endif %}
           <li><hr class="my-1 border-base-200"></li>
           <li><a href="{{ path('app_profile') }}">Mon Profil</a></li>
