@@ -108,6 +108,28 @@ class NutritionLogController extends AbstractController
         return $this->redirectToRoute('app_nutrition_index');
     }
 
+    #[Route('/{id}/supprimer', name: 'delete', methods: ['POST'], requirements: ['id' => '[0-9a-fA-F-]{36}'])]
+    public function delete(NutritionLog $log, Request $request, EntityManagerInterface $em): Response
+    {
+        $this->denyAccessUnlessGranted('EDIT', $log);
+        if (!$this->isCsrfTokenValid('delete_nutrition' . $log->getId(), (string) $request->request->get('_token'))) {
+            throw $this->createAccessDeniedException('CSRF invalide.');
+        }
+
+        if ($log->getImageFilename()) {
+            $path = $this->nutritionUploadsDir . '/' . $log->getImageFilename();
+            if (is_file($path)) {
+                @unlink($path);
+            }
+        }
+
+        $em->remove($log);
+        $em->flush();
+        $this->addFlash('success', 'Entrée supprimée.');
+
+        return $this->redirectToRoute('app_nutrition_index');
+    }
+
     /**
      * Valide et déplace une photo uploadée. Retourne le nom du fichier final, ou null en cas d'erreur.
      *
