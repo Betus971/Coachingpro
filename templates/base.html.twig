@@ -129,7 +129,7 @@
           <li><a href="{{ path('app_nutrition_index') }}" class="{{ current starts with 'app_nutrition' ? 'active' : '' }}">Nutrition</a></li>
           <li><a href="{{ path('app_analytics_index') }}" class="{{ current starts with 'app_analytics' ? 'active' : '' }}">Stats & PRs</a></li>
           <li><a href="{{ path('app_program_show') }}" class="{{ current starts with 'app_program' ? 'active' : '' }}">Programme</a></li>
-          <li><a href="{{ path('app_challenge_index') }}" class="{{ current starts with 'app_challenge' ? 'active' : '' }}">Défis 🔥</a></li>
+          <li><a href="{{ path('app_challenge_index') }}" class="{{ current starts with 'app_challenge' ? 'active' : '' }}">Défis</a></li>
           {% if is_granted('ROLE_COACH') %}<li><a href="{{ path('app_coach_clients') }}" class="{{ current starts with 'app_coach' ? 'active' : '' }}">Mes clients</a></li>{% endif %}
           <li><hr class="my-1 border-base-200"></li>
           <li><a href="{{ path('app_profile') }}">Mon Profil</a></li>
