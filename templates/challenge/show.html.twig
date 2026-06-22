@@ -1,288 +1,168 @@
 {% extends 'base.html.twig' %}
-{% block title %}{{ participation.challenge.emoji }} {{ participation.challenge.title }} — CoachPro{% endblock %}
+{% block title %}{{ participation.challenge.title }} — CoachPro{% endblock %}
+
+{% set catMeta = {
+  'nutrition': {icon: 'bi-egg-fried',   label: 'Nutrition'},
+  'fitness':   {icon: 'bi-heart-pulse', label: 'Fitness'},
+  'lifestyle': {icon: 'bi-tree',        label: 'Lifestyle'},
+  'mindset':   {icon: 'bi-lightbulb',   label: 'Mindset'},
+} %}
+{% set meta = catMeta[participation.challenge.category] ?? {icon: 'bi-trophy', label: participation.challenge.category} %}
 
 {% block body %}
-
-{# ── Animations CSS ───────────────────────────────────────────────────────── #}
 <style>
-/* ─── particules ─────────────────────────────────────────────── */
-@keyframes challengeParticleFly {
-  0%   { transform: translate(0,0) scale(1); opacity: 1; }
-  100% { transform: translate(var(--dx),var(--dy)) scale(0); opacity: 0; }
-}
-
-/* ─── pop bouton ─────────────────────────────────────────────── */
-@keyframes anim-pop {
-  0%   { transform: scale(1); }
-  35%  { transform: scale(1.4) rotate(-5deg); }
-  65%  { transform: scale(.88) rotate(3deg); }
-  100% { transform: scale(1); }
-}
+@keyframes challengeParticleFly { 0% { transform: translate(0,0) scale(1); opacity: 1; } 100% { transform: translate(var(--dx),var(--dy)) scale(0); opacity: 0; } }
+@keyframes anim-pop { 0% { transform: scale(1); } 35% { transform: scale(1.4) rotate(-5deg); } 65% { transform: scale(.88) rotate(3deg); } 100% { transform: scale(1); } }
 .anim-pop { animation: anim-pop .45s cubic-bezier(.36,.07,.19,.97) both; }
-
-/* ─── streak pop ─────────────────────────────────────────────── */
-@keyframes anim-streak-pop {
-  0%   { transform: scale(1); color: inherit; }
-  50%  { transform: scale(1.6); color: #f59e0b; }
-  100% { transform: scale(1); color: inherit; }
-}
+@keyframes anim-streak-pop { 0% { transform: scale(1); } 50% { transform: scale(1.6); color: #f59e0b; } 100% { transform: scale(1); } }
 .anim-streak-pop { animation: anim-streak-pop .4s ease both; }
-
-/* ─── banner slide-down ──────────────────────────────────────── */
-@keyframes slideDown {
-  from { transform: translateY(-30px); opacity: 0; }
-  to   { transform: translateY(0);     opacity: 1; }
-}
+@keyframes slideDown { from { transform: translateY(-30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 .anim-pop.completion-banner { animation: slideDown .5s ease both; }
 
-/* ─── boutons calendrier ─────────────────────────────────────── */
-.day-btn {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 1;
-  border-radius: .75rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: .7rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: transform .15s, box-shadow .15s;
-  border: 2px solid transparent;
-  line-height: 1;
-  gap: 1px;
-  user-select: none;
-}
+/* Grille calendrier — colonnes explicites (indépendant de Tailwind) */
+#challenge-calendar { display: grid; grid-template-columns: repeat(6, 1fr); gap: .5rem; }
+@media (min-width: 768px) { #challenge-calendar { grid-template-columns: repeat(10, 1fr); } }
+
+.day-btn { position: relative; width: 100%; aspect-ratio: 1; border-radius: .75rem; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: .8rem; font-weight: 700; cursor: pointer; transition: transform .15s, box-shadow .15s; border: 2px solid transparent; line-height: 1; gap: 2px; user-select: none; }
 .day-btn:hover:not(:disabled) { transform: scale(1.07); }
-.day-btn:active:not(:disabled){ transform: scale(.95); }
-
-/* état neutre (accessible, non coché) */
-.day-unchecked {
-  background: hsl(var(--b3));
-  border-color: hsl(var(--bc)/.15);
-  color: hsl(var(--bc)/.7);
-}
-.day-unchecked:hover:not(:disabled) {
-  border-color: hsl(var(--p)/.5);
-  box-shadow: 0 0 0 3px hsl(var(--p)/.15);
-}
-
-/* état coché */
-.day-checked {
-  background: linear-gradient(135deg, hsl(var(--su)), hsl(var(--su)/.7));
-  border-color: hsl(var(--su));
-  color: hsl(var(--suc));
-  box-shadow: 0 2px 10px hsl(var(--su)/.35);
-}
-
-/* case milestone cochée */
-.day-milestone.day-checked {
-  background: linear-gradient(135deg, #f59e0b, #ef4444);
-  border-color: #f59e0b;
-  color: #fff;
-  box-shadow: 0 3px 14px rgba(245,158,11,.5);
-}
-
-/* jour futur (verrouillé) */
-.day-locked {
-  background: hsl(var(--b2));
-  border-color: transparent;
-  color: hsl(var(--bc)/.2);
-  cursor: default;
-}
-
-/* indicateur "aujourd'hui" */
-.day-today .day-num::after {
-  content: '';
-  display: block;
-  width: 4px; height: 4px;
-  border-radius: 50%;
-  background: hsl(var(--p));
-  margin: 2px auto 0;
-}
-
-/* tick check */
-.day-tick {
-  font-size: .85em;
-  line-height: 1;
-}
-
-/* ─── badge milestone ─────────────────────────────────────────── */
-.milestone-ring {
-  box-shadow: 0 0 0 2px #f59e0b, 0 0 0 4px hsl(var(--b1));
-}
-
-/* ─── progress bar ────────────────────────────────────────────── */
-.progress-fill {
-  transition: width .6s cubic-bezier(.4,0,.2,1);
-  background: linear-gradient(90deg, #f59e0b, #ef4444);
-}
+.day-btn:active:not(:disabled) { transform: scale(.95); }
+.day-unchecked { background: hsl(var(--b3)); border-color: hsl(var(--bc)/.15); color: hsl(var(--bc)/.7); }
+.day-unchecked:hover:not(:disabled) { border-color: hsl(var(--p)/.5); box-shadow: 0 0 0 3px hsl(var(--p)/.15); }
+.day-checked { background: linear-gradient(135deg, hsl(var(--su)), hsl(var(--su)/.7)); border-color: hsl(var(--su)); color: hsl(var(--suc)); box-shadow: 0 2px 10px hsl(var(--su)/.35); }
+.day-milestone.day-checked { background: linear-gradient(135deg, #f59e0b, #ef4444); border-color: #f59e0b; color: #fff; box-shadow: 0 3px 14px rgba(245,158,11,.5); }
+.day-locked { background: hsl(var(--b2)); border-color: hsl(var(--bc)/.08); color: hsl(var(--bc)/.25); cursor: default; }
+.day-today .day-num::after { content: ''; display: block; width: 4px; height: 4px; border-radius: 50%; background: hsl(var(--p)); margin: 2px auto 0; }
+.day-tick { font-size: .9em; line-height: 1; }
+.progress-fill { transition: width .6s cubic-bezier(.4,0,.2,1); background: linear-gradient(90deg, #f59e0b, #ef4444); }
 </style>
 
-{# ── Back link ────────────────────────────────────────────────────────────── #}
-<div class="mb-5">
-  <a href="{{ path('app_challenge_index') }}" class="btn btn-ghost btn-sm gap-2">
-    ← Tous les défis
-  </a>
-</div>
+<div class="px-4 md:px-8 py-8 max-w-4xl mx-auto">
 
-{# ── Completion banner (hidden until JS shows it) ─────────────────────────── #}
-{% if participation.status == 'completed' %}
-  <div data-challenge-target="completionBanner"
-       class="alert bg-gradient-to-r from-warning to-error text-white font-bold text-center text-lg mb-6 rounded-2xl shadow-xl">
-    🏆 DÉFI COMPLÉTÉ — Tu es une LÉGENDE ! 🏆
+  <div class="mb-5">
+    <a href="{{ path('app_challenge_index') }}" class="text-sm text-muted hover:text-primary"><i class="bi bi-arrow-left"></i> Tous les défis</a>
   </div>
-{% else %}
-  <div data-challenge-target="completionBanner"
-       class="hidden alert bg-gradient-to-r from-warning to-error text-white font-bold text-center text-lg mb-6 rounded-2xl shadow-xl">
-    🏆 DÉFI COMPLÉTÉ — Tu es une LÉGENDE ! 🏆
-  </div>
-{% endif %}
 
-{# ── Challenge header ──────────────────────────────────────────────────────── #}
-<div class="card bg-base-100 shadow-lg border border-base-300 mb-6"
-     data-controller="challenge"
-     data-challenge-participation-id-value="{{ participation.id }}">
+  {% if participation.status == 'completed' %}
+    <div data-challenge-target="completionBanner"
+         class="alert bg-gradient-to-r from-warning to-error text-white font-display tracking-widest text-center text-lg mb-6 rounded-2xl shadow-xl">
+      <span class="w-full"><i class="bi bi-trophy-fill"></i> DÉFI COMPLÉTÉ — BRAVO</span>
+    </div>
+  {% else %}
+    <div data-challenge-target="completionBanner"
+         class="hidden alert bg-gradient-to-r from-warning to-error text-white font-display tracking-widest text-center text-lg mb-6 rounded-2xl shadow-xl">
+      <span class="w-full"><i class="bi bi-trophy-fill"></i> DÉFI COMPLÉTÉ — BRAVO</span>
+    </div>
+  {% endif %}
 
-  <div class="card-body p-6">
-    <div class="flex flex-col sm:flex-row sm:items-center gap-4 mb-6">
-      <div class="text-6xl leading-none">{{ participation.challenge.emoji }}</div>
-      <div class="flex-1">
-        <h1 class="text-2xl font-extrabold">{{ participation.challenge.title }}</h1>
-        <p class="text-base-content/60 mt-1 text-sm">{{ participation.challenge.description }}</p>
-        <div class="mt-2">
+  <div class="card-coach p-6"
+       data-controller="challenge"
+       data-challenge-participation-id-value="{{ participation.id }}">
+
+    {# En-tête #}
+    <div class="flex items-start gap-4 mb-6">
+      <div class="w-14 h-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center text-3xl shrink-0">
+        <i class="bi {{ meta.icon }}"></i>
+      </div>
+      <div class="flex-1 min-w-0">
+        <h1 class="text-2xl font-display">{{ participation.challenge.title }}</h1>
+        <p class="text-sm text-muted mt-1">{{ participation.challenge.description }}</p>
+        <div class="mt-2 flex flex-wrap items-center gap-2">
           {% if participation.status == 'active' %}
             <span class="badge badge-success badge-sm">En cours</span>
           {% elseif participation.status == 'completed' %}
-            <span class="badge badge-warning badge-sm">Complété ✓</span>
+            <span class="badge badge-warning badge-sm">Complété</span>
           {% else %}
             <span class="badge badge-error badge-sm">Abandonné</span>
           {% endif %}
-          <span class="badge badge-ghost badge-sm ml-1">Démarré le {{ participation.startedAt|date('d/m/Y') }}</span>
+          <span class="badge badge-ghost badge-sm">{{ meta.label }}</span>
+          <span class="text-xs text-muted">Démarré le {{ participation.startedAt|date('d/m/Y') }}</span>
         </div>
       </div>
     </div>
 
-    {# ── Stats row ────────────────────────────────────────────────────────── #}
+    {# Stats #}
     <div class="grid grid-cols-3 gap-3 mb-6">
       <div class="bg-base-200 rounded-xl p-3 text-center">
-        <div class="text-3xl font-black text-warning"
-             data-challenge-target="streakCount">{{ streak }}</div>
-        <div class="text-xs text-base-content/50 mt-0.5">🔥 Série</div>
+        <div class="text-3xl font-display text-warning" data-challenge-target="streakCount">{{ streak }}</div>
+        <div class="text-xs text-muted mt-0.5"><i class="bi bi-fire"></i> Série</div>
       </div>
       <div class="bg-base-200 rounded-xl p-3 text-center">
-        <div class="text-3xl font-black text-success"
-             data-challenge-target="checkedCount">{{ checkedCount }}</div>
-        <div class="text-xs text-base-content/50 mt-0.5">✅ Jours cochés</div>
+        <div class="text-3xl font-display text-success" data-challenge-target="checkedCount">{{ checkedCount }}</div>
+        <div class="text-xs text-muted mt-0.5"><i class="bi bi-check2-square"></i> Jours cochés</div>
       </div>
       <div class="bg-base-200 rounded-xl p-3 text-center">
-        <div class="text-3xl font-black text-info">{{ participation.daysRemaining }}</div>
-        <div class="text-xs text-base-content/50 mt-0.5">📅 Restants</div>
+        <div class="text-3xl font-display text-info">{{ participation.daysRemaining }}</div>
+        <div class="text-xs text-muted mt-0.5"><i class="bi bi-hourglass-split"></i> Restants</div>
       </div>
     </div>
 
-    {# ── Progress bar ──────────────────────────────────────────────────────── #}
+    {# Progression #}
     <div class="mb-6">
       <div class="flex justify-between text-sm font-semibold mb-2">
         <span>Progression</span>
         <span data-challenge-target="progressText">{{ progress }}%</span>
       </div>
       <div class="w-full bg-base-300 rounded-full h-4 overflow-hidden">
-        <div data-challenge-target="progressBar"
-             class="progress-fill h-4 rounded-full"
-             style="width: {{ progress }}%"></div>
+        <div data-challenge-target="progressBar" class="progress-fill h-4 rounded-full" style="width: {{ progress }}%"></div>
       </div>
-      <div class="flex justify-between text-xs text-base-content/40 mt-1">
+      <div class="flex justify-between text-xs text-muted mt-1">
         <span>Début</span>
-        {% set milestoneIcons = ['🔥','⭐','💪','🏆'] %}
-        {% for i, m in milestones %}
-          <span>J.{{ m }} {{ milestoneIcons[i] ?? '🏅' }}</span>
+        {% for m in milestones %}
+          <span><i class="bi bi-flag"></i> J.{{ m }}</span>
         {% endfor %}
       </div>
     </div>
 
-    {# ── Calendar grid ─────────────────────────────────────────────────────── #}
-    <div class="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-10 gap-2" id="challenge-calendar">
+    {# Calendrier #}
+    <div id="challenge-calendar">
       {% for d, info in days %}
-        {% set btnClass = 'day-btn' %}
-        {% set btnClass = btnClass ~ (info.milestone ? ' day-milestone' : '') %}
-        {% set btnClass = btnClass ~ (info.today     ? ' day-today' : '') %}
-
+        {% set btnClass = 'day-btn' ~ (info.milestone ? ' day-milestone' : '') ~ (info.today ? ' day-today' : '') %}
         {% if not info.accessible %}
-          {# Futur — verrouillé #}
           <button class="{{ btnClass }} day-locked" disabled title="Pas encore accessible">
             <span class="day-num">{{ d }}</span>
-            {% if info.milestone %}<span style="font-size:.6em;opacity:.3">★</span>{% endif %}
+            {% if info.milestone %}<i class="bi bi-flag" style="font-size:.6em;opacity:.4"></i>{% endif %}
           </button>
-
         {% elseif info.checked %}
-          {# Coché #}
-          <button class="{{ btnClass }} day-checked"
-                  data-day="{{ d }}"
-                  data-checked="1"
-                  data-challenge-target="dayBtn"
-                  data-action="click->challenge#checkDay"
-                  {% if participation.status != 'active' %}disabled{% endif %}
-                  title="Jour {{ d }} — coché ✓">
+          <button class="{{ btnClass }} day-checked" data-day="{{ d }}" data-checked="1"
+                  data-challenge-target="dayBtn" data-action="click->challenge#checkDay"
+                  {% if participation.status != 'active' %}disabled{% endif %} title="Jour {{ d }} — coché">
             <span class="day-num">{{ d }}</span>
-            <span class="day-tick">✓</span>
+            <span class="day-tick"><i class="bi bi-check-lg"></i></span>
           </button>
-
         {% else %}
-          {# Accessible mais non coché #}
-          <button class="{{ btnClass }} day-unchecked"
-                  data-day="{{ d }}"
-                  data-checked="0"
-                  data-challenge-target="dayBtn"
-                  data-action="click->challenge#checkDay"
-                  {% if participation.status != 'active' %}disabled{% endif %}
-                  title="Jour {{ d }} — cliquer pour cocher">
+          <button class="{{ btnClass }} day-unchecked" data-day="{{ d }}" data-checked="0"
+                  data-challenge-target="dayBtn" data-action="click->challenge#checkDay"
+                  {% if participation.status != 'active' %}disabled{% endif %} title="Jour {{ d }} — cliquer pour cocher">
             <span class="day-num">{{ d }}</span>
-            {% if info.milestone %}<span style="font-size:.6em;opacity:.5">★</span>{% endif %}
+            {% if info.milestone %}<i class="bi bi-flag" style="font-size:.6em;opacity:.5"></i>{% endif %}
           </button>
         {% endif %}
       {% endfor %}
     </div>
 
-    {# ── Légende ───────────────────────────────────────────────────────────── #}
-    <div class="flex flex-wrap gap-3 mt-4 text-xs text-base-content/50">
-      <span class="flex items-center gap-1.5">
-        <span class="inline-block w-4 h-4 rounded bg-base-300 border border-base-content/15"></span> À faire
-      </span>
-      <span class="flex items-center gap-1.5">
-        <span class="inline-block w-4 h-4 rounded"
-              style="background:linear-gradient(135deg,hsl(var(--su)),hsl(var(--su)/.7))"></span> Coché ✓
-      </span>
-      <span class="flex items-center gap-1.5">
-        <span class="inline-block w-4 h-4 rounded"
-              style="background:linear-gradient(135deg,#f59e0b,#ef4444)"></span> Milestone 🏆
-      </span>
-      <span class="flex items-center gap-1.5">
-        <span class="inline-block w-4 h-4 rounded bg-base-200 opacity-30"></span> Futur
-      </span>
+    {# Légende #}
+    <div class="flex flex-wrap gap-3 mt-4 text-xs text-muted">
+      <span class="flex items-center gap-1.5"><span class="inline-block w-4 h-4 rounded bg-base-300 border border-base-content/15"></span> À faire</span>
+      <span class="flex items-center gap-1.5"><span class="inline-block w-4 h-4 rounded" style="background:linear-gradient(135deg,hsl(var(--su)),hsl(var(--su)/.7))"></span> Coché</span>
+      <span class="flex items-center gap-1.5"><span class="inline-block w-4 h-4 rounded" style="background:linear-gradient(135deg,#f59e0b,#ef4444)"></span> Palier</span>
+      <span class="flex items-center gap-1.5"><span class="inline-block w-4 h-4 rounded bg-base-200 opacity-40"></span> À venir</span>
     </div>
   </div>
-</div>
 
-{# ── Abandon ───────────────────────────────────────────────────────────────── #}
-{% if participation.status == 'active' %}
-  <div class="flex justify-end gap-2 mt-2">
-    <form method="post" action="{{ path('app_challenge_abandon', {id: participation.id}) }}"
-          onsubmit="return confirm('Abandonner ce défi ? Tu peux toujours en recommencer un !')">
-      <button type="submit" class="btn btn-ghost btn-sm text-error gap-1">
-        🏳 Abandonner
-      </button>
-    </form>
-    {% if not participation.challenge.preset %}
-      <form method="post" action="{{ path('app_challenge_delete_custom', {id: participation.id}) }}"
-            onsubmit="return confirm('Supprimer définitivement ce défi personnalisé ?')">
-        <button type="submit" class="btn btn-ghost btn-sm text-error gap-1">
-          🗑 Supprimer le défi
-        </button>
+  {% if participation.status == 'active' %}
+    <div class="flex justify-end gap-2 mt-3">
+      <form method="post" action="{{ path('app_challenge_abandon', {id: participation.id}) }}"
+            onsubmit="return confirm('Abandonner ce défi ? Tu pourras en relancer un autre.')">
+        <button type="submit" class="btn btn-ghost btn-sm text-error gap-1"><i class="bi bi-flag"></i> Abandonner</button>
       </form>
-    {% endif %}
-  </div>
-{% endif %}
+      {% if not participation.challenge.preset %}
+        <form method="post" action="{{ path('app_challenge_delete_custom', {id: participation.id}) }}"
+              onsubmit="return confirm('Supprimer définitivement ce défi personnalisé ?')">
+          <button type="submit" class="btn btn-ghost btn-sm text-error gap-1"><i class="bi bi-trash"></i> Supprimer</button>
+        </form>
+      {% endif %}
+    </div>
+  {% endif %}
 
+</div>
 {% endblock %}

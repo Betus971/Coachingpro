@@ -57,7 +57,7 @@ class ChallengeController extends AbstractController
         $user = $this->getUser();
 
         $title    = trim((string) $request->request->get('title', ''));
-        $emoji    = trim((string) $request->request->get('emoji', '🎯'));
+        $emoji    = trim((string) $request->request->get('emoji', ''));
         $desc     = trim((string) $request->request->get('description', ''));
         $duration = max(1, min(365, (int) $request->request->get('duration', 30)));
         $category = $request->request->get('category', 'lifestyle');
@@ -73,7 +73,7 @@ class ChallengeController extends AbstractController
 
         $challenge = (new Challenge())
             ->setTitle($title)
-            ->setEmoji($emoji ?: '🎯')
+            ->setEmoji($emoji)
             ->setDescription($desc ?: "Défi personnel : $title")
             ->setDurationDays($duration)
             ->setCategory($category)
@@ -88,7 +88,7 @@ class ChallengeController extends AbstractController
         $em->persist($participation);
         $em->flush();
 
-        $this->addFlash('success', "Défi créé ! C'est parti pour {$duration} jours 🔥");
+        $this->addFlash('success', "Défi créé ! C'est parti pour {$duration} jours.");
         return $this->redirectToRoute('app_challenge_show', ['id' => $participation->getId()]);
     }
 

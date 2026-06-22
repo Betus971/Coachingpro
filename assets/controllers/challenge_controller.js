@@ -51,7 +51,7 @@ export default class extends Controller {
         if (checked) {
             btn.classList.add('day-checked');
             btn.classList.remove('day-unchecked');
-            btn.innerHTML = `<span class="day-num">${day}</span><span class="day-tick">✓</span>`;
+            btn.innerHTML = `<span class="day-num">${day}</span><span class="day-tick"><i class="bi bi-check-lg"></i></span>`;
         } else {
             btn.classList.remove('day-checked');
             btn.classList.add('day-unchecked');
@@ -84,13 +84,13 @@ export default class extends Controller {
     _celebrateMilestone(day, btn) {
         this._popBtn(btn);
         const messages = {
-            7:  '🔥 1 semaine, t\'es chaud !',
-            14: '⭐ Mi-parcours, ne lâche rien !',
-            21: '💪 21 jours = nouvelle habitude !',
-            30: '🏆 30 JOURS — LÉGENDAIRE !',
+            7:  '1 semaine tenue, continue !',
+            14: 'Mi-parcours, ne lâche rien !',
+            21: '21 jours = nouvelle habitude !',
+            30: '30 jours bouclés — bravo !',
         };
         this._spawnParticles(12);
-        this._showToast(messages[day] ?? '⭐ Milestone !' , 4000);
+        this._showToast(messages[day] ?? 'Palier atteint !', 4000);
     }
 
     _celebrateCompletion() {
@@ -101,22 +101,24 @@ export default class extends Controller {
         for (let i = 0; i < 30; i++) {
             setTimeout(() => this._spawnParticles(3), i * 80);
         }
-        this._showToast('🏆 DÉFI COMPLÉTÉ ! Tu es une LÉGENDE ! 🏆', 6000);
+        this._showToast('Défi complété — bravo !', 6000);
     }
 
     _spawnParticles(count) {
-        const emojis = ['🎉', '⭐', '🔥', '💪', '🏆', '🎊', '✨', '🌟', '💯'];
+        const colors = ['#f59e0b', '#ef4444', '#22c55e', '#3b82f6', '#a855f7'];
         for (let i = 0; i < count; i++) {
-            const el       = document.createElement('div');
-            const dx       = (Math.random() - 0.5) * 300;
-            const dy       = -(120 + Math.random() * 250);
-            const size     = 1.2 + Math.random() * 1.2;
-            el.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+            const el   = document.createElement('div');
+            const dx   = (Math.random() - 0.5) * 300;
+            const dy   = -(120 + Math.random() * 250);
+            const size = 8 + Math.random() * 8;
             el.style.cssText = [
                 'position:fixed',
                 `left:${10 + Math.random() * 80}vw`,
                 'top:55vh',
-                `font-size:${size}rem`,
+                `width:${size}px`,
+                `height:${size}px`,
+                'border-radius:50%',
+                `background:${colors[Math.floor(Math.random() * colors.length)]}`,
                 'pointer-events:none',
                 'z-index:9999',
                 `--dx:${dx}px`,
