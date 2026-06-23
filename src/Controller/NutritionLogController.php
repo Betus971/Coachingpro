@@ -15,6 +15,7 @@ use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use App\Service\GamificationService;
+use App\Service\ImageOptimizer;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\String\Slugger\SluggerInterface;
 
@@ -36,6 +37,7 @@ class NutritionLogController extends AbstractController
     public function __construct(
         // Bind défini dans config/services.yaml — chemin absolu vers le dossier d'upload.
         private readonly string $nutritionUploadsDir,
+        private readonly ImageOptimizer $imageOptimizer,
     ) {
     }
 
@@ -217,6 +219,9 @@ class NutritionLogController extends AbstractController
             return null;
         }
 
-        return $newFilename;
+        // Redimensionne + recompresse (gain de poids, et HEIC -> JPEG si Imagick dispo).
+        $optimized = $this->imageOptimizer->optimize($this->nutritionUploadsDir . '/' . $newFilename);
+
+        return basename($optimized);
     }
 }
