@@ -103,30 +103,11 @@
       {# ── Sankey composition corporelle ─────────────────────────────────── #}
       <div class="card-elevated p-6">
         <div class="text-xs uppercase tracking-widest opacity-40 mb-0.5">Composition corporelle</div>
-        <p class="text-xs opacity-30 mb-4">Répartition de la dernière mesure Boditrax</p>
+        <p class="text-xs opacity-30 mb-4">Répartition de la dernière mesure</p>
 
-        <div class="relative" style="height:220px">
-          <canvas data-weight-composition-target="sankey"></canvas>
-          <div class="hidden absolute inset-0 flex items-center justify-center"
-               data-weight-composition-target="sankeyEmpty">
-            <p class="text-sm opacity-30 text-center">
-              Importe un CSV Boditrax pour voir<br>la composition corporelle.
-            </p>
-          </div>
-        </div>
-
-        <div class="flex flex-wrap gap-4 mt-4 justify-center">
-          {% for l in [
-            {color: '#9b6dff', label: 'Poids total'},
-            {color: '#ff6b6b', label: 'Masse grasse'},
-            {color: '#00c9a7', label: 'Masse musculaire'},
-            {color: '#9898b0', label: 'Ossature & autres'},
-          ] %}
-            <div class="flex items-center gap-1.5">
-              <span class="w-2.5 h-2.5 rounded-full shrink-0" style="background:{{ l.color }}"></span>
-              <span class="text-xs opacity-50">{{ l.label }}</span>
-            </div>
-          {% endfor %}
+        <div data-weight-composition-target="composition"></div>
+        <div class="hidden py-10 text-center" data-weight-composition-target="compositionEmpty">
+          <p class="text-sm opacity-30">Renseigne ta masse grasse / musculaire (ou importe un CSV Boditrax)<br>pour voir ta composition corporelle.</p>
         </div>
       </div>
 
