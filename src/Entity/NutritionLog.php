@@ -11,6 +11,8 @@ use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Post;
 use App\Repository\NutritionLogRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Attribute\Groups;
 use Symfony\Component\Uid\Uuid;
@@ -102,10 +104,16 @@ class NutritionLog
     #[Groups(['nutrition:read'])]
     private \DateTimeImmutable $createdAt;
 
+    /** @var Collection<int, MealPhoto> Photos des repas du jour. */
+    #[ORM\OneToMany(mappedBy: 'nutritionLog', targetEntity: MealPhoto::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
+    #[ORM\OrderBy(['createdAt' => 'ASC'])]
+    private Collection $photos;
+
     public function __construct()
     {
         $this->id = Uuid::v7();
         $this->createdAt = new \DateTimeImmutable();
+        $this->photos = new ArrayCollection();
     }
 
     public function getId(): Uuid { return $this->id; }
@@ -132,4 +140,22 @@ class NutritionLog
     public function getImageFilename(): ?string { return $this->imageFilename; }
     public function setImageFilename(?string $f): self { $this->imageFilename = $f; return $this; }
     public function getCreatedAt(): \DateTimeImmutable { return $this->createdAt; }
+
+    /** @return Collection<int, MealPhoto> */
+    public function getPhotos(): Collection { return $this->photos; }
+
+    public function addPhoto(MealPhoto $p): self
+    {
+        if (!$this->photos->contains($p)) {
+            $this->photos->add($p);
+            $p->setNutritionLog($this);
+        }
+        return $this;
+    }
+
+    public function removePhoto(MealPhoto $p): self
+    {
+        $this->photos->removeElement($p);
+        return $this;
+    }
 }

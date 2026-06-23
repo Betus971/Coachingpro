@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Entity\MealPhoto;
 use App\Entity\NutritionLog;
 use App\Entity\User;
 use App\Repository\NutritionLogRepository;
@@ -77,27 +78,11 @@ class NutritionLogController extends AbstractController
         $log->setWaterL($request->request->get('water_l') !== '' ? $request->request->get('water_l') : null);
         $log->setNotes($request->request->get('notes'));
 
-        // ── Upload photo (si présente) ───────────────────────────────────────
-        $photoFile = $request->files->get('photo');
-        if ($photoFile instanceof UploadedFile && $photoFile->isValid()) {
-            $newFilename = $this->handlePhotoUpload($photoFile, $slugger);
-            if ($newFilename === null) {
-                // handlePhotoUpload a déjà ajouté un flash error
-                return $this->redirectToRoute('app_nutrition_index');
-            }
-
-            // Si on remplace la photo précédente, supprimer l'ancienne du disque
-            if ($log->getImageFilename()) {
-                $oldPath = $this->nutritionUploadsDir . '/' . $log->getImageFilename();
-                if (is_file($oldPath)) {
-                    @unlink($oldPath);
-                }
-            }
-            $log->setImageFilename($newFilename);
-        }
-
         $em->persist($log);
         $em->flush();
+
+        // ── Photos de repas (plusieurs possibles dans la journée) ─────────────
+        $this->attachUploadedPhotos($log, $request->files->all('photos'), $slugger, $em);
 
         $gamificationStatus = $gamification->updateStreak($user);
         if ($gamificationStatus['streak_updated'] && $gamificationStatus['message']) {
@@ -128,6 +113,67 @@ class NutritionLogController extends AbstractController
         $this->addFlash('success', 'Entrée supprimée.');
 
         return $this->redirectToRoute('app_nutrition_index');
+    }
+
+    #[Route('/{id}/photos', name: 'add_photos', methods: ['POST'], requirements: ['id' => '[0-9a-fA-F-]{36}'])]
+    public function addPhotos(NutritionLog $log, Request $request, EntityManagerInterface $em, SluggerInterface $slugger): Response
+    {
+        $this->denyAccessUnlessGranted('EDIT', $log);
+        if (!$this->isCsrfTokenValid('photos' . $log->getId(), (string) $request->request->get('_token'))) {
+            throw $this->createAccessDeniedException('CSRF invalide.');
+        }
+
+        $n = $this->attachUploadedPhotos($log, $request->files->all('photos'), $slugger, $em);
+        $this->addFlash($n > 0 ? 'success' : 'error', $n > 0 ? "{$n} photo(s) ajoutée(s)." : 'Aucune photo valide à ajouter.');
+
+        return $this->redirectToRoute('app_nutrition_index');
+    }
+
+    #[Route('/photo/{id}/supprimer', name: 'delete_photo', methods: ['POST'], requirements: ['id' => '[0-9a-fA-F-]{36}'])]
+    public function deletePhoto(MealPhoto $photo, Request $request, EntityManagerInterface $em): Response
+    {
+        $this->denyAccessUnlessGranted('EDIT', $photo->getNutritionLog());
+        if (!$this->isCsrfTokenValid('delphoto' . $photo->getId(), (string) $request->request->get('_token'))) {
+            throw $this->createAccessDeniedException('CSRF invalide.');
+        }
+
+        $path = $this->nutritionUploadsDir . '/' . $photo->getFilename();
+        if (is_file($path)) {
+            @unlink($path);
+        }
+        $em->remove($photo);
+        $em->flush();
+        $this->addFlash('success', 'Photo supprimée.');
+
+        return $this->redirectToRoute('app_nutrition_index');
+    }
+
+    /**
+     * Valide, déplace et rattache N photos uploadées au log du jour. Retourne le nombre ajouté.
+     *
+     * @param array<UploadedFile|null> $files
+     */
+    private function attachUploadedPhotos(NutritionLog $log, array $files, SluggerInterface $slugger, EntityManagerInterface $em): int
+    {
+        $count = 0;
+        foreach ($files as $file) {
+            if (!$file instanceof UploadedFile || !$file->isValid()) {
+                continue;
+            }
+            $filename = $this->handlePhotoUpload($file, $slugger);
+            if ($filename === null) {
+                continue; // flash error déjà ajouté par handlePhotoUpload
+            }
+            $photo = (new MealPhoto())->setFilename($filename);
+            $log->addPhoto($photo);
+            $em->persist($photo);
+            $count++;
+        }
+        if ($count > 0) {
+            $em->flush();
+        }
+
+        return $count;
     }
 
     /**
