@@ -29,6 +29,24 @@
 
 # Node / Tailwind
 /node_modules/
+
+###> secrets, dumps & env locaux (ne jamais committer) ###
+/.env.local
+/.env.*.local
+/.env
+*.sql
+*.sql.gz
+*.dump
+/config/jwt/*.pem
+/config/secrets/prod/prod.decrypt.private.php
+AUDIT.md
+###< secrets, dumps & env locaux ###
+
+###> symfony hygiene ###
+/var/
+/vendor/
+/public/uploads/
+###< symfony hygiene ###
 npm-debug.log*
 
 # Fichiers de test temporaires
