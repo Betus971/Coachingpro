@@ -40,6 +40,7 @@
 /config/jwt/*.pem
 /config/secrets/prod/prod.decrypt.private.php
 AUDIT.md
+SECURITY_ROTATION.md
 ###< secrets, dumps & env locaux ###
 
 ###> symfony hygiene ###
