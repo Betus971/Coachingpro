@@ -57,25 +57,25 @@
     </div>
 
     {% if nutritionPlan %}
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div class="stat bg-base-100/50 rounded-2xl border border-base-200">
-          <div class="stat-title text-xs uppercase tracking-widest text-muted">BMR</div>
-          <div class="stat-value text-xl text-primary">{{ nutritionPlan.bmr }}</div>
-          <div class="stat-desc">kcal au repos</div>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div class="bg-base-100/50 rounded-2xl border border-base-200 p-4 min-w-0">
+          <div class="text-xs uppercase tracking-widest text-muted">BMR</div>
+          <div class="text-xl font-display text-primary mt-1">{{ nutritionPlan.bmr }}</div>
+          <div class="text-xs text-muted mt-0.5">kcal au repos</div>
         </div>
-        <div class="stat bg-base-100/50 rounded-2xl border border-base-200">
-          <div class="stat-title text-xs uppercase tracking-widest text-muted">Maintien (TDEE)</div>
-          <div class="stat-value text-xl">{{ nutritionPlan.tdee }}</div>
-          <div class="stat-desc">{{ nutritionPlan.activity.label }}{{ nutritionPlan.activityAuto ? ' · auto' : '' }}</div>
+        <div class="bg-base-100/50 rounded-2xl border border-base-200 p-4 min-w-0">
+          <div class="text-xs uppercase tracking-widest text-muted">Maintien (TDEE)</div>
+          <div class="text-xl font-display mt-1">{{ nutritionPlan.tdee }}</div>
+          <div class="text-xs text-muted mt-0.5 truncate">{{ nutritionPlan.activity.label }}{{ nutritionPlan.activityAuto ? ' · auto' : '' }}</div>
         </div>
-        <div class="stat bg-base-100/50 rounded-2xl border border-base-200">
-          <div class="stat-title text-xs uppercase tracking-widest text-muted">Cible sèche</div>
-          <div class="stat-value text-xl text-success">{{ nutritionPlan.targetKcal }}</div>
-          <div class="stat-desc">déficit −{{ nutritionPlan.deficitKcal }} kcal</div>
+        <div class="bg-base-100/50 rounded-2xl border border-base-200 p-4 min-w-0">
+          <div class="text-xs uppercase tracking-widest text-muted">Cible sèche</div>
+          <div class="text-xl font-display text-success mt-1">{{ nutritionPlan.targetKcal }}</div>
+          <div class="text-xs text-muted mt-0.5">déficit −{{ nutritionPlan.deficitKcal }} kcal</div>
         </div>
-        <div class="stat bg-base-100/50 rounded-2xl border border-base-200">
-          <div class="stat-title text-xs uppercase tracking-widest text-muted">Macros conseillées</div>
-          <div class="text-sm mt-1 leading-relaxed">
+        <div class="bg-base-100/50 rounded-2xl border border-base-200 p-4 min-w-0">
+          <div class="text-xs uppercase tracking-widest text-muted">Macros conseillées</div>
+          <div class="text-sm mt-1 leading-relaxed break-words">
             <span class="text-secondary font-bold">{{ nutritionPlan.proteinsG }}g</span> prot ·
             <span class="text-accent font-bold">{{ nutritionPlan.carbsG }}g</span> gluc ·
             <span class="text-primary font-bold">{{ nutritionPlan.fatsG }}g</span> lip
