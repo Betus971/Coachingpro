@@ -74,32 +74,39 @@ class ChatController extends AbstractController
             return $this->json(['error' => 'Message vide'], Response::HTTP_BAD_REQUEST);
         }
 
-        $session = $request->getSession();
-        $pending = $session->get('pending_coach_action');
+        try {
+            $session = $request->getSession();
+            $pending = $session->get('pending_coach_action');
 
-        // Une action est en attente : ce message est une confirmation (oui / annule).
-        if (is_array($pending)) {
-            $reply = $this->resolvePendingAction($user, $message, $pending, $actionExecutor, $session);
-            if ($reply !== null) {
-                return $this->persistAndRespond($user, $message, $reply, $repo, $em);
+            // Une action est en attente : ce message est une confirmation (oui / annule).
+            if (is_array($pending)) {
+                $reply = $this->resolvePendingAction($user, $message, $pending, $actionExecutor, $session);
+                if ($reply !== null) {
+                    return $this->persistAndRespond($user, $message, $reply, $repo, $em);
+                }
+                // Ni oui ni non clair : on abandonne l'attente et on traite normalement.
+                $session->remove('pending_coach_action');
             }
-            // Ni oui ni non clair : on abandonne l'attente et on traite normalement.
-            $session->remove('pending_coach_action');
+
+            $history = array_map(
+                fn (ChatMessage $m) => ['role' => $m->getRole(), 'content' => $m->getContent()],
+                $repo->findLastN($user, 20)
+            );
+
+            // Appel IA : peut renvoyer une action proposée (à confirmer) via $action.
+            $action     = null;
+            $aiResponse = $coach->chat($user, $message, $history, $action);
+            if (is_array($action)) {
+                $session->set('pending_coach_action', $action);
+            }
+
+            return $this->persistAndRespond($user, $message, $aiResponse, $repo, $em);
+        } catch (\Throwable $e) {
+            // On renvoie une erreur JSON propre (le widget affiche un message lisible
+            // au lieu d'une 500 -> "Erreur réseau"). La vraie cause part dans les logs.
+            error_log('ChatController::send error: ' . $e->getMessage() . ' @ ' . $e->getFile() . ':' . $e->getLine());
+            return $this->json(['error' => 'Le coach IA est momentanément indisponible, réessaie dans un instant.']);
         }
-
-        $history = array_map(
-            fn (ChatMessage $m) => ['role' => $m->getRole(), 'content' => $m->getContent()],
-            $repo->findLastN($user, 20)
-        );
-
-        // Appel IA : peut renvoyer une action proposée (à confirmer) via $action.
-        $action     = null;
-        $aiResponse = $coach->chat($user, $message, $history, $action);
-        if (is_array($action)) {
-            $session->set('pending_coach_action', $action);
-        }
-
-        return $this->persistAndRespond($user, $message, $aiResponse, $repo, $em);
     }
 
     /**
