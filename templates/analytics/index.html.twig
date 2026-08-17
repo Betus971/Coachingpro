@@ -47,14 +47,25 @@
 
     {# ── COLONNE DE DROITE : GRAPHIQUES ────────────────────────────────────── #}
     <div class="lg:col-span-2 space-y-6">
-      <h2 class="text-2xl font-display flex items-center gap-3">
-        <svg class="h-6 w-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/></svg>
-        Volume Total
-      </h2>
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <h2 class="text-2xl font-display flex items-center gap-3">
+          <svg class="h-6 w-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/></svg>
+          Volume par exercice
+        </h2>
+        {% if exercises|length > 0 %}
+          <form method="get">
+            <select name="exercise" onchange="this.form.submit()" class="select select-bordered select-sm bg-base-100 max-w-xs">
+              {% for e in exercises %}
+                <option value="{{ e.id }}" {{ e.id == selectedId ? 'selected' : '' }}>{{ e.name }}</option>
+              {% endfor %}
+            </select>
+          </form>
+        {% endif %}
+      </div>
 
       <div class="card bg-base-100 shadow-xl border border-base-200 p-6">
-        <div class="text-xs uppercase tracking-widest opacity-40 mb-0.5">Évolution dans le temps</div>
-        <p class="text-xs opacity-30 mb-4">Volume soulevé (Reps × Poids) par séance</p>
+        <div class="text-xs uppercase tracking-widest opacity-40 mb-0.5">Évolution dans le temps{% if selectedName %} — {{ selectedName }}{% endif %}</div>
+        <p class="text-xs opacity-30 mb-4">Volume (Reps × Poids, barres) et charge max (ligne) par séance</p>
         
         {% if chart.data.datasets[0].data is empty %}
           <div class="h-64 flex items-center justify-center bg-base-200/50 rounded-lg">
