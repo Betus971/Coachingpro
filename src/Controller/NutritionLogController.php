@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Entity\FoodEntry;
 use App\Entity\MealPhoto;
 use App\Entity\NutritionLog;
 use App\Entity\User;
@@ -151,6 +152,97 @@ class NutritionLogController extends AbstractController
     }
 
     /**
+     * Ajoute UN aliment à la journée (cumule, n'écrase pas).
+     * Chaque aliment est une ligne FoodEntry ; les totaux du jour = somme des aliments.
+     */
+    #[Route('/aliment', name: 'add_food', methods: ['POST'])]
+    public function addFood(Request $request, EntityManagerInterface $em, GamificationService $gamification): Response
+    {
+        /** @var User $user */
+        $user = $this->getUser();
+
+        $date = new \DateTimeImmutable($request->request->get('logged_on', 'today'));
+
+        $log = $em->getRepository(NutritionLog::class)->findOneBy(['user' => $user, 'loggedOn' => $date]);
+        $isNew = $log === null;
+        if ($isNew) {
+            $log = (new NutritionLog())->setUser($user)->setLoggedOn($date);
+        }
+
+        // Journée pré-existante avec des totaux mais aucun aliment détaillé (saisie
+        // manuelle / historique) → on convertit ces totaux en un premier aliment
+        // « Saisie initiale » pour ne rien perdre en ajoutant le nouvel aliment.
+        if (!$isNew && $log->getFoodEntries()->isEmpty() && $log->hasAnyMacro()) {
+            $seed = (new FoodEntry())
+                ->setName('Saisie initiale')
+                ->setProteinsG($log->getProteinsG())
+                ->setCarbsG($log->getCarbsG())
+                ->setFatsG($log->getFatsG())
+                ->setKcal($log->getKcal())
+                ->setFiberG($log->getFiberG());
+            $log->addFoodEntry($seed);
+            $em->persist($seed);
+        }
+
+        $food = (new FoodEntry())
+            ->setName($this->str($request->request->get('food_name')))
+            ->setProteinsG($this->int($request->request->get('proteins_g')))
+            ->setCarbsG($this->int($request->request->get('carbs_g')))
+            ->setFatsG($this->int($request->request->get('fats_g')))
+            ->setKcal($this->int($request->request->get('kcal')))
+            ->setFiberG($this->int($request->request->get('fiber_g')));
+        $log->addFoodEntry($food);
+        $log->recomputeTotals();
+
+        // Champs au niveau du jour, mis à jour seulement si fournis (pas d'écrasement).
+        if ($request->request->get('water_l', '') !== '') {
+            $log->setWaterL($request->request->get('water_l'));
+        }
+        if ($this->str($request->request->get('notes')) !== null) {
+            $log->setNotes($request->request->get('notes'));
+        }
+
+        $em->persist($log);
+        $em->persist($food);
+        $em->flush();
+
+        $gamificationStatus = $gamification->updateStreak($user);
+        if ($gamificationStatus['streak_updated'] && $gamificationStatus['message']) {
+            $this->addFlash('success', $gamificationStatus['message']);
+        }
+
+        $this->addFlash('success', 'Aliment ajouté ✓');
+        return $this->redirectToRoute('app_nutrition_index');
+    }
+
+    #[Route('/aliment/{id}/supprimer', name: 'delete_food', methods: ['POST'], requirements: ['id' => '[0-9a-fA-F-]{36}'])]
+    public function deleteFood(FoodEntry $food, Request $request, EntityManagerInterface $em): Response
+    {
+        $log = $food->getNutritionLog();
+        $this->denyAccessUnlessGranted('EDIT', $log);
+        if (!$this->isCsrfTokenValid('delfood' . $food->getId(), (string) $request->request->get('_token'))) {
+            throw $this->createAccessDeniedException('CSRF invalide.');
+        }
+
+        $log->removeFoodEntry($food);
+        $em->remove($food);
+
+        // Dernier aliment supprimé et journée sans photo / note / eau → on retire le jour.
+        if ($log->getFoodEntries()->isEmpty()
+            && $log->getPhotos()->isEmpty()
+            && !$log->getImageFilename() && !$log->getNotes() && $log->getWaterL() === null) {
+            $em->remove($log);
+        } else {
+            $log->recomputeTotals();
+        }
+
+        $em->flush();
+        $this->addFlash('success', 'Aliment supprimé.');
+
+        return $this->redirectToRoute('app_nutrition_index');
+    }
+
+    /**
      * Valide, déplace et rattache N photos uploadées au log du jour. Retourne le nombre ajouté.
      *
      * @param array<UploadedFile|null> $files
@@ -176,6 +268,19 @@ class NutritionLogController extends AbstractController
         }
 
         return $count;
+    }
+
+    /** Convertit une valeur de formulaire en int, ou null si vide. */
+    private function int(mixed $v): ?int
+    {
+        return ($v !== null && $v !== '') ? (int) $v : null;
+    }
+
+    /** Trim une chaîne, ou null si vide. */
+    private function str(mixed $v): ?string
+    {
+        $v = is_string($v) ? trim($v) : '';
+        return $v !== '' ? $v : null;
     }
 
     /**
