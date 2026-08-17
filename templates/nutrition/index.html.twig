@@ -12,7 +12,7 @@
     </div>
     <button onclick="document.getElementById('modal-nutrition').showModal()"
             class="btn btn-secondary font-display tracking-widest">
-      + LOG AUJOURD'HUI
+      + AJOUTER UN ALIMENT
     </button>
   </div>
 
@@ -74,15 +74,40 @@
               <div class="badge badge-accent badge-outline text-xs"><span class="font-bold mr-1">{{ log.carbsG }}g</span> Gluc</div>
               <div class="badge badge-neutral badge-outline text-xs"><span class="font-bold mr-1">{{ log.fatsG }}g</span> Lip</div>
             </div>
-            
+
+            {# ── Liste des aliments du jour ──────────────────────────────── #}
+            {% if log.foodEntries is not empty %}
+              <div class="border-t border-base-200 pt-3 mb-3">
+                <div class="text-[10px] font-bold tracking-widest uppercase text-muted mb-2">Aliments ({{ log.foodEntries|length }})</div>
+                <ul class="flex flex-col gap-1.5">
+                  {% for food in log.foodEntries %}
+                    <li class="flex items-center justify-between gap-2 text-sm bg-base-200/40 rounded-lg px-3 py-1.5">
+                      <span class="truncate flex-1">
+                        {{ food.name ?: 'Aliment' }}
+                        <span class="text-xs text-muted ml-1">
+                          {% if food.kcal %}{{ food.kcal }} kcal{% endif %}
+                          {% if food.proteinsG %} · {{ food.proteinsG }}P{% endif %}{% if food.carbsG %}/{{ food.carbsG }}G{% endif %}{% if food.fatsG %}/{{ food.fatsG }}L{% endif %}
+                        </span>
+                      </span>
+                      <form method="post" action="{{ path('app_nutrition_food_delete', {id: food.id}) }}"
+                            onsubmit="return confirm('Supprimer cet aliment ?');" class="shrink-0">
+                        <input type="hidden" name="_token" value="{{ csrf_token('delete_food' ~ food.id) }}">
+                        <button class="btn btn-ghost btn-xs text-error px-1" title="Supprimer l'aliment"><i class="bi bi-x-lg"></i></button>
+                      </form>
+                    </li>
+                  {% endfor %}
+                </ul>
+              </div>
+            {% endif %}
+
             {% if log.notes %}
               <p class="text-sm text-base-content/70 italic border-l-2 border-primary pl-3">"{{ log.notes }}"</p>
             {% endif %}
 
             <form method="post" action="{{ path('app_nutrition_delete', {id: log.id}) }}"
-                  onsubmit="return confirm('Supprimer cette entrée ?');" class="mt-3 text-right">
+                  onsubmit="return confirm('Supprimer toute la journée ?');" class="mt-3 text-right">
               <input type="hidden" name="_token" value="{{ csrf_token('delete_nutrition' ~ log.id) }}">
-              <button class="btn btn-ghost btn-xs text-error"><i class="bi bi-trash"></i> Supprimer</button>
+              <button class="btn btn-ghost btn-xs text-error"><i class="bi bi-trash"></i> Supprimer le jour</button>
             </form>
           </div>
         </div>
@@ -100,9 +125,16 @@
 {# ── Modal: log macros ─────────────────────────────────────────────────────── #}
 <dialog id="modal-nutrition" class="modal">
   <div class="modal-box bg-base-200 border border-neutral max-w-md">
-    <h3 class="font-display text-2xl mb-1">LOG MACROS</h3>
-    <p class="text-xs text-muted mb-6 tracking-wide">Objectifs: 190g Prot · 270g Gluc · 75g Lip · 2 700 kcal</p>
+    <h3 class="font-display text-2xl mb-1">AJOUTER UN ALIMENT</h3>
+    <p class="text-xs text-muted mb-6 tracking-wide">Chaque aliment s'ajoute à la journée — rien n'est écrasé.</p>
     <form action="{{ path('app_nutrition_new') }}" method="post" enctype="multipart/form-data" class="flex flex-col gap-4">
+      <div class="form-control">
+        <label class="label pb-1">
+          <span class="label-text text-xs tracking-widest uppercase text-secondary">Aliment</span>
+        </label>
+        <input type="text" name="food_name" placeholder="Ex : Poulet 150g, Riz basmati…"
+               class="input input-bordered bg-base-300 border-neutral focus:border-secondary">
+      </div>
       <div class="form-control">
         <label class="label pb-1">
           <span class="label-text text-xs tracking-widest uppercase text-muted">Date</span>
@@ -169,7 +201,7 @@
                class="file-input file-input-bordered file-input-primary bg-base-300 border-neutral w-full">
       </div>
       <div class="flex gap-3 mt-2">
-        <button type="submit" class="btn btn-secondary flex-1 font-display tracking-widest">ENREGISTRER</button>
+        <button type="submit" class="btn btn-secondary flex-1 font-display tracking-widest">AJOUTER</button>
         <button type="button" onclick="document.getElementById('modal-nutrition').close()"
                 class="btn btn-ghost flex-1">Annuler</button>
       </div>

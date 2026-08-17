@@ -11,6 +11,8 @@ use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Post;
 use App\Repository\NutritionLogRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Attribute\Groups;
 use Symfony\Component\Uid\Uuid;
@@ -98,6 +100,17 @@ class NutritionLog
     #[Groups(['nutrition:read', 'nutrition:write'])]
     private ?string $notes = null;
 
+    /**
+     * Aliments individuels de la journée. Les totaux ci-dessus (proteinsG, etc.)
+     * sont maintenus égaux à la somme de ces entrées via recomputeTotals().
+     *
+     * @var Collection<int, FoodEntry>
+     */
+    #[ORM\OneToMany(mappedBy: 'nutritionLog', targetEntity: FoodEntry::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
+    #[ORM\OrderBy(['createdAt' => 'ASC'])]
+    #[Groups(['nutrition:read'])]
+    private Collection $foodEntries;
+
     #[ORM\Column]
     #[Groups(['nutrition:read'])]
     private \DateTimeImmutable $createdAt;
@@ -106,6 +119,7 @@ class NutritionLog
     {
         $this->id = Uuid::v7();
         $this->createdAt = new \DateTimeImmutable();
+        $this->foodEntries = new ArrayCollection();
     }
 
     public function getId(): Uuid { return $this->id; }
@@ -132,4 +146,46 @@ class NutritionLog
     public function getImageFilename(): ?string { return $this->imageFilename; }
     public function setImageFilename(?string $f): self { $this->imageFilename = $f; return $this; }
     public function getCreatedAt(): \DateTimeImmutable { return $this->createdAt; }
+
+    /** @return Collection<int, FoodEntry> */
+    public function getFoodEntries(): Collection { return $this->foodEntries; }
+
+    public function addFoodEntry(FoodEntry $entry): self
+    {
+        if (!$this->foodEntries->contains($entry)) {
+            $this->foodEntries->add($entry);
+            $entry->setNutritionLog($this);
+        }
+        return $this;
+    }
+
+    public function removeFoodEntry(FoodEntry $entry): self
+    {
+        $this->foodEntries->removeElement($entry);
+        return $this;
+    }
+
+    /**
+     * Recalcule les totaux du jour = somme des aliments.
+     * Un total reste null si aucun aliment n'apporte cette macro (saisie partielle).
+     */
+    public function recomputeTotals(): void
+    {
+        $sum = ['proteinsG' => null, 'carbsG' => null, 'fatsG' => null, 'kcal' => null, 'fiberG' => null];
+
+        foreach ($this->foodEntries as $entry) {
+            foreach (['proteinsG', 'carbsG', 'fatsG', 'kcal', 'fiberG'] as $macro) {
+                $val = $entry->{'get' . ucfirst($macro)}();
+                if ($val !== null) {
+                    $sum[$macro] = ($sum[$macro] ?? 0) + $val;
+                }
+            }
+        }
+
+        $this->proteinsG = $sum['proteinsG'];
+        $this->carbsG    = $sum['carbsG'];
+        $this->fatsG     = $sum['fatsG'];
+        $this->kcal      = $sum['kcal'];
+        $this->fiberG    = $sum['fiberG'];
+    }
 }

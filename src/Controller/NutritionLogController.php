@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Entity\FoodEntry;
 use App\Entity\NutritionLog;
 use App\Entity\User;
 use App\Repository\NutritionLogRepository;
@@ -63,19 +64,51 @@ class NutritionLogController extends AbstractController
 
         $date = new \DateTimeImmutable($request->request->get('logged_on', 'today'));
 
-        // Upsert: si une entrée existe déjà pour ce jour, on la met à jour
-        $log = $em->getRepository(NutritionLog::class)->findOneBy(['user' => $user, 'loggedOn' => $date])
-            ?? new NutritionLog();
+        // On récupère (ou crée) le journal du jour. On N'ÉCRASE PAS : on ajoute
+        // un aliment à la liste du jour.
+        $log = $em->getRepository(NutritionLog::class)->findOneBy(['user' => $user, 'loggedOn' => $date]);
+        $isNew = $log === null;
+        if ($isNew) {
+            $log = (new NutritionLog())->setUser($user)->setLoggedOn($date);
+        }
 
-        $log->setUser($user);
-        $log->setLoggedOn($date);
-        $log->setProteinsG($request->request->get('proteins_g') !== null && $request->request->get('proteins_g') !== '' ? (int) $request->request->get('proteins_g') : null);
-        $log->setCarbsG($request->request->get('carbs_g') !== null && $request->request->get('carbs_g') !== '' ? (int) $request->request->get('carbs_g') : null);
-        $log->setFatsG($request->request->get('fats_g') !== null && $request->request->get('fats_g') !== '' ? (int) $request->request->get('fats_g') : null);
-        $log->setKcal($request->request->get('kcal') !== null && $request->request->get('kcal') !== '' ? (int) $request->request->get('kcal') : null);
-        $log->setFiberG($request->request->get('fiber_g') !== '' ? (int) $request->request->get('fiber_g') : null);
-        $log->setWaterL($request->request->get('water_l') !== '' ? $request->request->get('water_l') : null);
-        $log->setNotes($request->request->get('notes'));
+        // Journée pré-existante avec des totaux mais aucun aliment détaillé
+        // (données historiques) → on convertit ces totaux en un premier aliment
+        // « Saisie initiale » pour ne rien perdre quand on ajoute le nouvel aliment.
+        if (!$isNew && $log->getFoodEntries()->isEmpty() && $this->hasAnyMacro($log)) {
+            $seed = (new FoodEntry())
+                ->setName('Saisie initiale')
+                ->setProteinsG($log->getProteinsG())
+                ->setCarbsG($log->getCarbsG())
+                ->setFatsG($log->getFatsG())
+                ->setKcal($log->getKcal())
+                ->setFiberG($log->getFiberG());
+            $log->addFoodEntry($seed);
+            $em->persist($seed);
+        }
+
+        // ── Nouvel aliment saisi dans le formulaire ──────────────────────────
+        $food = (new FoodEntry())
+            ->setName($this->str($request->request->get('food_name')))
+            ->setProteinsG($this->int($request->request->get('proteins_g')))
+            ->setCarbsG($this->int($request->request->get('carbs_g')))
+            ->setFatsG($this->int($request->request->get('fats_g')))
+            ->setKcal($this->int($request->request->get('kcal')))
+            ->setFiberG($this->int($request->request->get('fiber_g')));
+        $log->addFoodEntry($food);
+
+        // Recalcule les totaux du jour = somme des aliments
+        $log->recomputeTotals();
+
+        // ── Champs au niveau du jour (eau / notes / photo) ───────────────────
+        // On ne les met à jour que s'ils sont fournis, pour ne pas écraser
+        // ce qui a été saisi avec un aliment précédent.
+        if ($request->request->get('water_l', '') !== '') {
+            $log->setWaterL($request->request->get('water_l'));
+        }
+        if ($this->str($request->request->get('notes')) !== null) {
+            $log->setNotes($request->request->get('notes'));
+        }
 
         // ── Upload photo (si présente) ───────────────────────────────────────
         $photoFile = $request->files->get('photo');
@@ -97,6 +130,7 @@ class NutritionLogController extends AbstractController
         }
 
         $em->persist($log);
+        $em->persist($food);
         $em->flush();
 
         $gamificationStatus = $gamification->updateStreak($user);
@@ -104,7 +138,34 @@ class NutritionLogController extends AbstractController
             $this->addFlash('success', $gamificationStatus['message']);
         }
 
-        $this->addFlash('success', 'Nutrition enregistrée ✓');
+        $this->addFlash('success', 'Aliment ajouté ✓');
+        return $this->redirectToRoute('app_nutrition_index');
+    }
+
+    #[Route('/aliment/{id}/supprimer', name: 'food_delete', methods: ['POST'], requirements: ['id' => '[0-9a-fA-F-]{36}'])]
+    public function deleteFood(FoodEntry $food, Request $request, EntityManagerInterface $em): Response
+    {
+        $log = $food->getNutritionLog();
+        $this->denyAccessUnlessGranted('EDIT', $log);
+        if (!$this->isCsrfTokenValid('delete_food' . $food->getId(), (string) $request->request->get('_token'))) {
+            throw $this->createAccessDeniedException('CSRF invalide.');
+        }
+
+        $log->removeFoodEntry($food);
+        $em->remove($food);
+
+        // Si c'était le dernier aliment et que le jour n'a ni photo ni notes ni eau,
+        // on supprime le journal du jour ; sinon on recalcule les totaux.
+        if ($log->getFoodEntries()->isEmpty()
+            && !$log->getImageFilename() && !$log->getNotes() && $log->getWaterL() === null) {
+            $em->remove($log);
+        } else {
+            $log->recomputeTotals();
+        }
+
+        $em->flush();
+        $this->addFlash('success', 'Aliment supprimé.');
+
         return $this->redirectToRoute('app_nutrition_index');
     }
 
@@ -128,6 +189,29 @@ class NutritionLogController extends AbstractController
         $this->addFlash('success', 'Entrée supprimée.');
 
         return $this->redirectToRoute('app_nutrition_index');
+    }
+
+    /** Convertit une valeur de formulaire en int, ou null si vide. */
+    private function int(mixed $v): ?int
+    {
+        return ($v !== null && $v !== '') ? (int) $v : null;
+    }
+
+    /** Trim une chaîne, ou null si vide. */
+    private function str(mixed $v): ?string
+    {
+        $v = is_string($v) ? trim($v) : '';
+        return $v !== '' ? $v : null;
+    }
+
+    /** Le journal porte-t-il au moins une macro renseignée ? */
+    private function hasAnyMacro(NutritionLog $log): bool
+    {
+        return $log->getProteinsG() !== null
+            || $log->getCarbsG() !== null
+            || $log->getFatsG() !== null
+            || $log->getKcal() !== null
+            || $log->getFiberG() !== null;
     }
 
     /**
