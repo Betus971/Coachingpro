@@ -21,13 +21,14 @@
           'May':'mai','June':'juin','July':'juillet','August':'août',
           'September':'septembre','October':'octobre','November':'novembre','December':'décembre'
         })|upper }}</span>
-        {% if session.durationMinutes %}<span>⏱ {{ session.durationMinutes }} min</span>{% endif %}
+        {% if session.durationMinutes %}<span><i class="bi bi-clock"></i> {{ session.durationMinutes }} min</span>{% endif %}
         {% if session.rpe %}<span>RPE {{ session.rpe }}/10</span>{% endif %}
       </div>
     </div>
     <div class="text-right">
-      <div class="font-display text-5xl text-primary">{{ session.sets|length }}</div>
-      <div class="text-xs text-muted uppercase tracking-widest">séries totales</div>
+      <div class="font-display text-5xl text-primary">{{ setsByExercise|length }}</div>
+      <div class="text-xs text-muted uppercase tracking-widest">exercice{{ setsByExercise|length > 1 ? 's' : '' }}</div>
+      <div class="text-xs text-muted/70 mt-1">{{ session.sets|length }} série{{ session.sets|length > 1 ? 's' : '' }} au total</div>
     </div>
   </div>
 
