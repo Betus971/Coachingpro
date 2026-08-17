@@ -25,9 +25,11 @@ use Symfony\Component\Validator\Constraints as Assert;
  * Note: kcal n'est PAS recalculé côté serveur — on stocke ce que le client a saisi (un kcal indiqué
  * sur une étiquette ne suit pas exactement 4/4/9, donc cohérence avec la réalité de saisie).
  * Si tu veux du calculé en plus, ajoute kcalComputed et compare.
+ *
+ * Une entrée = un repas. Plusieurs repas par jour sont autorisés (pas de
+ * contrainte unique sur user+date) : une même date peut apparaître plusieurs fois.
  */
 #[ORM\Entity(repositoryClass: NutritionLogRepository::class)]
-#[ORM\UniqueConstraint(name: 'uniq_nutrition_user_date', columns: ['user_id', 'logged_on'])]
 #[ORM\Index(columns: ['user_id', 'logged_on'], name: 'idx_nutrition_user_date')]
 #[ApiResource(
     operations: [
@@ -57,6 +59,12 @@ class NutritionLog
     #[Assert\NotNull]
     #[Groups(['nutrition:read', 'nutrition:write'])]
     private \DateTimeImmutable $loggedOn;
+
+    /** Nom / libellé du repas (ex: "Petit-déj", "Déjeuner", "Poulet riz"). Optionnel. */
+    #[ORM\Column(length: 120, nullable: true)]
+    #[Assert\Length(max: 120)]
+    #[Groups(['nutrition:read', 'nutrition:write'])]
+    private ?string $mealName = null;
 
     #[ORM\Column(type: 'smallint', nullable: true)]
     #[Assert\Range(min: 0, max: 1000)]
@@ -121,6 +129,8 @@ class NutritionLog
     public function setUser(User $u): self { $this->user = $u; return $this; }
     public function getLoggedOn(): \DateTimeImmutable { return $this->loggedOn; }
     public function setLoggedOn(\DateTimeImmutable $d): self { $this->loggedOn = $d; return $this; }
+    public function getMealName(): ?string { return $this->mealName; }
+    public function setMealName(?string $n): self { $this->mealName = $n; return $this; }
     public function getProteinsG(): ?int { return $this->proteinsG; }
     public function setProteinsG(?int $v): self { $this->proteinsG = $v; return $this; }
     public function getCarbsG(): ?int { return $this->carbsG; }

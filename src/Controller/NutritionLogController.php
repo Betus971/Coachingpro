@@ -46,15 +46,25 @@ class NutritionLogController extends AbstractController
     {
         /** @var User $user */
         $user = $this->getUser();
-        $logs = $repo->findBy(['user' => $user], ['loggedOn' => 'DESC'], 30);
+        $logs = $repo->findBy(['user' => $user], ['loggedOn' => 'DESC', 'createdAt' => 'DESC'], 60);
 
         // TODO: à terme, lire depuis user.dailyMacroTargets (entité ou JSON)
         $targets = ['proteins' => 190, 'carbs' => 270, 'fats' => 75, 'kcal' => 2700];
 
+        // Total du jour = somme de TOUS les repas d'aujourd'hui (plusieurs entrées possibles).
+        $todayLogs   = $repo->findBy(['user' => $user, 'loggedOn' => new \DateTimeImmutable('today')]);
+        $todayTotals = ['proteins' => 0, 'carbs' => 0, 'fats' => 0, 'kcal' => 0, 'count' => count($todayLogs)];
+        foreach ($todayLogs as $l) {
+            $todayTotals['proteins'] += (int) $l->getProteinsG();
+            $todayTotals['carbs']    += (int) $l->getCarbsG();
+            $todayTotals['fats']     += (int) $l->getFatsG();
+            $todayTotals['kcal']     += (int) $l->getKcal();
+        }
+
         return $this->render('nutrition/index.html.twig', [
-            'logs'    => $logs,
-            'targets' => $targets,
-            'today'   => $repo->findOneBy(['user' => $user, 'loggedOn' => new \DateTimeImmutable('today')]),
+            'logs'        => $logs,
+            'targets'     => $targets,
+            'todayTotals' => $todayTotals,
         ]);
     }
 
@@ -66,12 +76,22 @@ class NutritionLogController extends AbstractController
 
         $date = new \DateTimeImmutable($request->request->get('logged_on', 'today'));
 
-        // Upsert: si une entrée existe déjà pour ce jour, on la met à jour
-        $log = $em->getRepository(NutritionLog::class)->findOneBy(['user' => $user, 'loggedOn' => $date])
-            ?? new NutritionLog();
+        // Une entrée = un repas. On CRÉE une nouvelle entrée par défaut (plusieurs
+        // repas par jour autorisés). Si un `id` est fourni (bouton « Modifier »),
+        // on met à jour CE repas précis au lieu d'en créer un.
+        $id  = (string) $request->request->get('id', '');
+        $log = null;
+        if ($id !== '') {
+            $log = $em->getRepository(NutritionLog::class)->find($id);
+            if ($log !== null) {
+                $this->denyAccessUnlessGranted('EDIT', $log);
+            }
+        }
+        $log ??= new NutritionLog();
 
         $log->setUser($user);
         $log->setLoggedOn($date);
+        $log->setMealName($request->request->get('meal_name') !== '' ? trim((string) $request->request->get('meal_name')) : null);
         $log->setProteinsG($request->request->get('proteins_g') !== null && $request->request->get('proteins_g') !== '' ? (int) $request->request->get('proteins_g') : null);
         $log->setCarbsG($request->request->get('carbs_g') !== null && $request->request->get('carbs_g') !== '' ? (int) $request->request->get('carbs_g') : null);
         $log->setFatsG($request->request->get('fats_g') !== null && $request->request->get('fats_g') !== '' ? (int) $request->request->get('fats_g') : null);
