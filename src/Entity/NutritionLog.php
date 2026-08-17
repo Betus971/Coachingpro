@@ -109,11 +109,22 @@ class NutritionLog
     #[ORM\OrderBy(['createdAt' => 'ASC'])]
     private Collection $photos;
 
+    /**
+     * Aliments individuels du jour. Les totaux ci-dessus (proteinsG, etc.) sont
+     * maintenus égaux à la somme de ces entrées via recomputeTotals().
+     *
+     * @var Collection<int, FoodEntry>
+     */
+    #[ORM\OneToMany(mappedBy: 'nutritionLog', targetEntity: FoodEntry::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
+    #[ORM\OrderBy(['createdAt' => 'ASC'])]
+    private Collection $foodEntries;
+
     public function __construct()
     {
         $this->id = Uuid::v7();
         $this->createdAt = new \DateTimeImmutable();
         $this->photos = new ArrayCollection();
+        $this->foodEntries = new ArrayCollection();
     }
 
     public function getId(): Uuid { return $this->id; }
@@ -157,5 +168,54 @@ class NutritionLog
     {
         $this->photos->removeElement($p);
         return $this;
+    }
+
+    /** @return Collection<int, FoodEntry> */
+    public function getFoodEntries(): Collection { return $this->foodEntries; }
+
+    public function addFoodEntry(FoodEntry $entry): self
+    {
+        if (!$this->foodEntries->contains($entry)) {
+            $this->foodEntries->add($entry);
+            $entry->setNutritionLog($this);
+        }
+        return $this;
+    }
+
+    public function removeFoodEntry(FoodEntry $entry): self
+    {
+        $this->foodEntries->removeElement($entry);
+        return $this;
+    }
+
+    /**
+     * Recalcule les totaux du jour = somme des aliments.
+     * Un total reste null si aucun aliment n'apporte cette macro (saisie partielle).
+     */
+    public function recomputeTotals(): void
+    {
+        $sum = ['proteinsG' => null, 'carbsG' => null, 'fatsG' => null, 'kcal' => null, 'fiberG' => null];
+
+        foreach ($this->foodEntries as $entry) {
+            foreach (['proteinsG', 'carbsG', 'fatsG', 'kcal', 'fiberG'] as $macro) {
+                $val = $entry->{'get' . ucfirst($macro)}();
+                if ($val !== null) {
+                    $sum[$macro] = ($sum[$macro] ?? 0) + $val;
+                }
+            }
+        }
+
+        $this->proteinsG = $sum['proteinsG'];
+        $this->carbsG    = $sum['carbsG'];
+        $this->fatsG     = $sum['fatsG'];
+        $this->kcal      = $sum['kcal'];
+        $this->fiberG    = $sum['fiberG'];
+    }
+
+    /** Le jour porte-t-il au moins une macro renseignée ? */
+    public function hasAnyMacro(): bool
+    {
+        return $this->proteinsG !== null || $this->carbsG !== null
+            || $this->fatsG !== null || $this->kcal !== null || $this->fiberG !== null;
     }
 }
