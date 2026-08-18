@@ -53,19 +53,34 @@
           Volume par exercice
         </h2>
         {% if exercises|length > 0 %}
-          <form method="get">
-            <select name="exercise" onchange="this.form.submit()" class="select select-bordered select-sm bg-base-100 max-w-xs">
-              {% for e in exercises %}
-                <option value="{{ e.id }}" {{ e.id == selectedId ? 'selected' : '' }}>{{ e.name }}</option>
+          <div class="flex flex-wrap items-center gap-2">
+            {# Toggle granularité : jour / semaine / mois / année #}
+            <div class="join">
+              {% for key, label in {'day': 'Jour', 'week': 'Semaine', 'month': 'Mois', 'year': 'Année'} %}
+                <a href="{{ path('app_analytics_index', {exercise: selectedId, period: key}) }}"
+                   class="join-item btn btn-sm {{ period == key ? 'btn-primary' : 'btn-ghost bg-base-100' }}">
+                  {{ label }}
+                </a>
               {% endfor %}
-            </select>
-          </form>
+            </div>
+
+            {# Sélecteur d'exercice (conserve la granularité courante) #}
+            <form method="get">
+              <input type="hidden" name="period" value="{{ period }}">
+              <select name="exercise" onchange="this.form.submit()" class="select select-bordered select-sm bg-base-100 max-w-xs">
+                {% for e in exercises %}
+                  <option value="{{ e.id }}" {{ e.id == selectedId ? 'selected' : '' }}>{{ e.name }}</option>
+                {% endfor %}
+              </select>
+            </form>
+          </div>
         {% endif %}
       </div>
 
       <div class="card bg-base-100 shadow-xl border border-base-200 p-6">
         <div class="text-xs uppercase tracking-widest opacity-40 mb-0.5">Évolution dans le temps{% if selectedName %} — {{ selectedName }}{% endif %}</div>
-        <p class="text-xs opacity-30 mb-4">Volume (Reps × Poids, barres) et charge max (ligne) par séance</p>
+        {% set periodLabel = {'day': 'par jour', 'week': 'par semaine', 'month': 'par mois', 'year': 'par année'} %}
+        <p class="text-xs opacity-30 mb-4">Volume (Reps × Poids, barres) et charge max (ligne) — {{ periodLabel[period] ?? 'par séance' }}</p>
         
         {% if chart.data.datasets[0].data is empty %}
           <div class="h-64 flex items-center justify-center bg-base-200/50 rounded-lg">

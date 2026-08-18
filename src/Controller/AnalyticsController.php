@@ -43,8 +43,14 @@ class AnalyticsController extends AbstractController
             }
         }
 
-        $history = $selectedId ? $setRepo->getVolumeHistoryForExercise($user, $selectedId) : [];
-        $labels  = array_map(fn ($v) => (new \DateTime($v['date']))->format('d/m'), $history);
+        // Granularité : jour / semaine / mois / année (défaut : jour).
+        $period = (string) $request->query->get('period', 'day');
+        if (!in_array($period, ['day', 'week', 'month', 'year'], true)) {
+            $period = 'day';
+        }
+
+        $history = $selectedId ? $setRepo->getVolumeHistoryForExercise($user, $selectedId, $period) : [];
+        $labels  = array_map(fn ($v) => $this->formatBucketLabel((string) $v['bucket'], $period), $history);
         $volumes = array_map(fn ($v) => (float) $v['total_volume'], $history);
         $weights = array_map(fn ($v) => $v['top_weight'] !== null ? (float) $v['top_weight'] : null, $history);
 
@@ -100,6 +106,30 @@ class AnalyticsController extends AbstractController
             'exercises'    => $exercises,
             'selectedId'   => $selectedId,
             'selectedName' => $selectedName,
+            'period'       => $period,
         ]);
+    }
+
+    /**
+     * Formate le libellé d'un bucket selon la granularité.
+     *  - day   : '2026-08-17'   → '17/08'
+     *  - week  : '2026-S33'     → 'S33 26'
+     *  - month : '2026-08'      → '08/26'
+     *  - year  : '2026'         → '2026'
+     */
+    private function formatBucketLabel(string $bucket, string $period): string
+    {
+        return match ($period) {
+            'week' => (function () use ($bucket) {
+                [$year, $week] = array_pad(explode('-', $bucket), 2, '');
+                return $week . ' ' . substr($year, -2);
+            })(),
+            'month' => (function () use ($bucket) {
+                [$year, $month] = array_pad(explode('-', $bucket), 2, '');
+                return $month . '/' . substr($year, -2);
+            })(),
+            'year' => $bucket,
+            default => (new \DateTime($bucket))->format('d/m'),
+        };
     }
 }

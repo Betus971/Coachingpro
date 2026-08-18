@@ -90,32 +90,48 @@ class WorkoutSetRepository extends ServiceEntityRepository
     }
 
     /**
-     * Volume (Reps × Poids) et charge max par séance, POUR UN exercice donné.
+     * Volume (Reps × Poids) et charge max POUR UN exercice donné, agrégé selon
+     * la granularité demandée : jour, semaine, mois ou année.
      *
-     * @return array<int, array{date: string, total_volume: float, top_weight: ?float}>
+     * @param 'day'|'week'|'month'|'year' $period
+     * @return array<int, array{bucket: string, total_volume: float, top_weight: ?float}>
      */
-    public function getVolumeHistoryForExercise(\App\Entity\User $user, string $exerciseId): array
+    public function getVolumeHistoryForExercise(\App\Entity\User $user, string $exerciseId, string $period = 'day'): array
     {
-        $sql = '
+        // Whitelist stricte : l'expression de regroupement n'est jamais construite
+        // à partir d'une entrée utilisateur brute (pas d'injection SQL possible).
+        [$bucketExpr, $limit] = match ($period) {
+            'week'  => ["to_char(date_trunc('week',  s.performed_at), 'IYYY-\"S\"IW')", 26],
+            'month' => ["to_char(date_trunc('month', s.performed_at), 'YYYY-MM')",       24],
+            'year'  => ["to_char(date_trunc('year',  s.performed_at), 'YYYY')",          10],
+            default => ["to_char(s.performed_at, 'YYYY-MM-DD')",                          30],
+        };
+
+        // On prend les N buckets les plus RÉCENTS (ORDER BY DESC + LIMIT), puis on
+        // ré-ordonne en ASC côté PHP pour tracer de gauche (ancien) à droite (récent).
+        $sql = "
             SELECT
-                DATE(s.performed_at) AS date,
-                SUM(ws.reps * COALESCE(ws.weight_kg, 0)) AS total_volume,
-                MAX(ws.weight_kg) AS top_weight
+                {$bucketExpr}                                   AS bucket,
+                SUM(ws.reps * COALESCE(ws.weight_kg, 0))        AS total_volume,
+                MAX(ws.weight_kg)                               AS top_weight,
+                MIN(s.performed_at)                             AS sort_key
             FROM workout_set ws
             JOIN workout_session s ON ws.session_id = s.id
             WHERE s.user_id = :user_id
               AND ws.exercise_id = :exercise_id
               AND ws.is_warmup = false
-            GROUP BY DATE(s.performed_at)
-            ORDER BY date ASC
-            LIMIT 30
-        ';
+            GROUP BY bucket
+            ORDER BY sort_key DESC
+            LIMIT {$limit}
+        ";
 
-        return $this->getEntityManager()->getConnection()
+        $rows = $this->getEntityManager()->getConnection()
             ->executeQuery($sql, [
                 'user_id'     => $user->getId()->toRfc4122(),
                 'exercise_id' => $exerciseId,
             ])
             ->fetchAllAssociative();
+
+        return array_reverse($rows);
     }
 }
