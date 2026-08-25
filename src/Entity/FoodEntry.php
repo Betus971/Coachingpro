@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
+use App\Enum\MealType;
 use App\Repository\FoodEntryRepository;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Uid\Uuid;
@@ -33,6 +34,10 @@ class FoodEntry
     #[ORM\Column(length: 120, nullable: true)]
     #[Assert\Length(max: 120)]
     private ?string $name = null;
+
+    /** Catégorie de repas : petit-déj / déjeuner / dîner / collation (null = non classé). */
+    #[ORM\Column(length: 20, nullable: true, enumType: MealType::class)]
+    private ?MealType $mealType = null;
 
     #[ORM\Column(type: 'smallint', nullable: true)]
     #[Assert\Range(min: 0, max: 1000)]
@@ -68,6 +73,8 @@ class FoodEntry
     public function setNutritionLog(NutritionLog $l): self { $this->nutritionLog = $l; return $this; }
     public function getName(): ?string { return $this->name; }
     public function setName(?string $n): self { $this->name = $n; return $this; }
+    public function getMealType(): ?MealType { return $this->mealType; }
+    public function setMealType(?MealType $m): self { $this->mealType = $m; return $this; }
     public function getProteinsG(): ?int { return $this->proteinsG; }
     public function setProteinsG(?int $v): self { $this->proteinsG = $v; return $this; }
     public function getCarbsG(): ?int { return $this->carbsG; }

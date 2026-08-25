@@ -91,26 +91,41 @@
             {% if log.foodEntries is not empty %}
               <div class="border-t border-base-200 pt-3 mb-3">
                 <div class="text-[10px] font-bold tracking-widest uppercase text-muted mb-2">Aliments ({{ log.foodEntries|length }})</div>
-                <ul class="flex flex-col gap-1.5">
-                  {% for food in log.foodEntries %}
-                    <li class="flex items-center justify-between gap-2 text-sm bg-base-200/40 rounded-lg px-3 py-1.5">
-                      <span class="truncate flex-1">
-                        {{ food.name ?: 'Aliment' }}
-                        <span class="text-xs text-muted ml-1">
-                          {%- if food.kcal %}{{ food.kcal }} kcal{% endif -%}
-                          {%- if food.proteinsG %} · {{ food.proteinsG }}P{% endif -%}
-                          {%- if food.carbsG %}/{{ food.carbsG }}G{% endif -%}
-                          {%- if food.fatsG %}/{{ food.fatsG }}L{% endif -%}
-                        </span>
-                      </span>
-                      <form method="post" action="{{ path('app_nutrition_delete_food', {id: food.id}) }}"
-                            onsubmit="return confirm('Supprimer cet aliment ?');" class="shrink-0">
-                        <input type="hidden" name="_token" value="{{ csrf_token('delfood' ~ food.id) }}">
-                        <button class="btn btn-ghost btn-xs text-error px-1" title="Supprimer l'aliment"><i class="bi bi-x-lg"></i></button>
-                      </form>
-                    </li>
-                  {% endfor %}
-                </ul>
+                {% set mealCats = [
+                  {value: 'breakfast', label: 'Petit-déj',  icon: 'bi-cup-hot'},
+                  {value: 'lunch',     label: 'Déjeuner',   icon: 'bi-egg-fried'},
+                  {value: 'dinner',    label: 'Dîner',      icon: 'bi-moon-stars'},
+                  {value: 'snack',     label: 'Collation',  icon: 'bi-cookie'},
+                  {value: null,        label: 'Non classé', icon: 'bi-dot'},
+                ] %}
+                {% for cat in mealCats %}
+                  {% set items = log.foodEntries|filter(f => cat.value is null ? f.mealType is null : (f.mealType and f.mealType.value == cat.value)) %}
+                  {% if items|length > 0 %}
+                    <div class="mb-2">
+                      <div class="text-[11px] font-bold text-primary/80 mb-1 flex items-center gap-1"><i class="bi {{ cat.icon }}"></i> {{ cat.label }}</div>
+                      <ul class="flex flex-col gap-1.5">
+                        {% for food in items %}
+                          <li class="flex items-center justify-between gap-2 text-sm bg-base-200/40 rounded-lg px-3 py-1.5">
+                            <span class="truncate flex-1">
+                              {{ food.name ?: 'Aliment' }}
+                              <span class="text-xs text-muted ml-1">
+                                {%- if food.kcal %}{{ food.kcal }} kcal{% endif -%}
+                                {%- if food.proteinsG %} · {{ food.proteinsG }}P{% endif -%}
+                                {%- if food.carbsG %}/{{ food.carbsG }}G{% endif -%}
+                                {%- if food.fatsG %}/{{ food.fatsG }}L{% endif -%}
+                              </span>
+                            </span>
+                            <form method="post" action="{{ path('app_nutrition_delete_food', {id: food.id}) }}"
+                                  onsubmit="return confirm('Supprimer cet aliment ?');" class="shrink-0">
+                              <input type="hidden" name="_token" value="{{ csrf_token('delfood' ~ food.id) }}">
+                              <button class="btn btn-ghost btn-xs text-error px-1" title="Supprimer l'aliment"><i class="bi bi-x-lg"></i></button>
+                            </form>
+                          </li>
+                        {% endfor %}
+                      </ul>
+                    </div>
+                  {% endif %}
+                {% endfor %}
               </div>
             {% endif %}
 
@@ -212,6 +227,17 @@
         </label>
         <input type="text" name="food_name" placeholder="Ex : Poulet 150g, Riz basmati…"
                class="input input-bordered bg-base-300 border-neutral focus:border-secondary">
+      </div>
+      <div class="form-control">
+        <label class="label pb-1">
+          <span class="label-text text-xs tracking-widest uppercase text-muted">Repas</span>
+        </label>
+        <select name="meal_type" class="select select-bordered bg-base-300 border-neutral">
+          <option value="breakfast">Petit-déj</option>
+          <option value="lunch" selected>Déjeuner</option>
+          <option value="dinner">Dîner</option>
+          <option value="snack">Collation</option>
+        </select>
       </div>
       <div class="form-control">
         <label class="label pb-1">

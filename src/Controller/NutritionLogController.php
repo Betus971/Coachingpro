@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Entity\FoodEntry;
+use App\Enum\MealType;
 use App\Entity\MealPhoto;
 use App\Entity\NutritionLog;
 use App\Entity\User;
@@ -186,6 +187,7 @@ class NutritionLogController extends AbstractController
 
         $food = (new FoodEntry())
             ->setName($this->str($request->request->get('food_name')))
+            ->setMealType(MealType::tryFrom((string) $request->request->get('meal_type', '')))
             ->setProteinsG($this->int($request->request->get('proteins_g')))
             ->setCarbsG($this->int($request->request->get('carbs_g')))
             ->setFatsG($this->int($request->request->get('fats_g')))
