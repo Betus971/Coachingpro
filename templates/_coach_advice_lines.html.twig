@@ -1,0 +1,21 @@
+{#-
+  Fragment : lignes d'advice IA (Markdown nettoyé). Rendu VIDE si advice est null
+  -> le widget masque alors la carte. Utilisé par l'endpoint async app_coach_advice.
+-#}
+{% macro cleanLine(text) %}
+  {{- text|replace({'**': '', '__': '', '* ': '', '_ ': ''})|replace({'*': '', '_': ''})|trim -}}
+{% endmacro %}
+{% import _self as fmt %}
+{%- if advice is not null -%}
+  {% for line in advice|split('\n') %}
+    {% set trimmed = line|trim %}
+    {% if trimmed starts with '•' or trimmed starts with '-' or trimmed starts with '#' %}
+      <div class="flex gap-2">
+        <span class="text-primary mt-0.5 shrink-0">•</span>
+        <span>{{ fmt.cleanLine(trimmed|replace({'•': '', '- ': '', '# ': ''})) }}</span>
+      </div>
+    {% elseif trimmed|length > 0 %}
+      <p class="opacity-80">{{ fmt.cleanLine(trimmed) }}</p>
+    {% endif %}
+  {% endfor %}
+{%- endif -%}

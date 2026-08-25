@@ -1,50 +1,40 @@
 {#
-  Widget "Coach IA" — à inclure avec :
-  {% include '_coach_advice.html.twig' with { advice: coachAdvice, context: 'poids' } %}
+  Widget "Coach IA" — chargé en ASYNCHRONE pour ne pas bloquer le rendu de la page
+  (l'appel Mistral peut prendre plusieurs secondes sur cache froid).
 
-  - advice  : string|null  — texte brut de Mistral (bullet points)
-  - context : string       — utilisé pour le label (ex: 'poids', 'séances', 'dashboard')
+  Usage : {% include '_coach_advice.html.twig' with { context: 'dashboard' } %}
+    - context : 'dashboard' | 'weight' | 'sessions'
 #}
+{% set ctx = context|default('dashboard') %}
 
-{% macro cleanLine(text) %}
-  {#- Supprime les syntaxes Markdown résiduelles que l'IA pourrait encore envoyer -#}
-  {{- text
-    |replace({'**': '', '__': '', '* ': '', '_ ': ''})
-    |replace({'*': '', '_': ''})
-    |trim
-  -}}
-{% endmacro %}
-
-{% import _self as fmt %}
-
-{% if advice is not null %}
-<div class="card bg-gradient-to-br from-primary/10 to-transparent backdrop-blur-sm border-l-4 border-primary shadow-lg animate-slide-up mb-6">
+<div class="card bg-gradient-to-br from-primary/10 to-transparent backdrop-blur-sm border-l-4 border-primary shadow-lg mb-6"
+     data-advice-url="{{ path('app_coach_advice', {context: ctx}) }}">
   <div class="card-body p-5">
-
-  {# En-tête #}
-  <div class="flex items-center gap-2 mb-3">
-    <span class="text-lg"><i class="bi bi-robot"></i></span>
-    <div>
-      <div class="section-tag">Coach IA</div>
+    <div class="flex items-center gap-2 mb-3">
+      <span class="text-lg"><i class="bi bi-robot"></i></span>
+      <div><div class="section-tag">Coach IA</div></div>
+      <span class="ml-auto text-xs text-muted">Mis à jour aujourd'hui</span>
     </div>
-    <span class="ml-auto text-xs text-muted">Mis à jour aujourd'hui</span>
-  </div>
-
-  {# Contenu — rendu ligne par ligne avec nettoyage Markdown #}
-  <div class="text-sm leading-relaxed space-y-1.5 text-muted-strong">
-    {% for line in advice|split('\n') %}
-      {% set trimmed = line|trim %}
-      {% if trimmed starts with '•' or trimmed starts with '-' or trimmed starts with '#' %}
-        <div class="flex gap-2">
-          <span class="text-primary mt-0.5 shrink-0">•</span>
-          <span>{{ fmt.cleanLine(trimmed|replace({'•': '', '- ': '', '# ': ''})) }}</span>
-        </div>
-      {% elseif trimmed|length > 0 %}
-        <p class="opacity-80">{{ fmt.cleanLine(trimmed) }}</p>
-      {% endif %}
-    {% endfor %}
-  </div>
-
+    <div class="text-sm leading-relaxed space-y-1.5 text-muted-strong" data-advice-body>
+      <p class="opacity-40 flex items-center gap-2">
+        <span class="loading loading-dots loading-sm"></span> Le coach analyse tes données…
+      </p>
+    </div>
   </div>
 </div>
-{% endif %}
+
+<script>
+(function () {
+  var card = document.currentScript.previousElementSibling;
+  if (!card) return;
+  var url  = card.getAttribute('data-advice-url');
+  var body = card.querySelector('[data-advice-body]');
+  fetch(url, { headers: { 'X-Requested-With': 'fetch' } })
+    .then(function (r) { return r.ok ? r.text() : ''; })
+    .then(function (html) {
+      if (!html || html.trim() === '') { card.remove(); return; }
+      body.innerHTML = html;
+    })
+    .catch(function () { card.remove(); });
+})();
+</script>

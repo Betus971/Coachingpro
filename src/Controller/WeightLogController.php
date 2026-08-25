@@ -37,7 +37,7 @@ class WeightLogController extends AbstractController
 
         return $this->render('weight/index.html.twig', [
             'logs'        => $logs,
-            'coachAdvice' => $gemini->getWeightAdvice($user),
+            'coachAdvice' => null, // chargé en async via le widget _coach_advice
         ]);
     }
 

@@ -33,7 +33,7 @@ class WorkoutSessionController extends AbstractController
 
         return $this->render('session/index.html.twig', [
             'sessions'    => $sessions,
-            'coachAdvice' => $gemini->getSessionAdvice($user),
+            'coachAdvice' => null, // chargé en async via le widget _coach_advice
         ]);
     }
 

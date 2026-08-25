@@ -129,7 +129,8 @@ class DashboardController extends AbstractController
         // Si l'utilisateur est un coach, on affiche la vue à onglets, sinon la vue client normale
         $template = $this->isGranted('ROLE_COACH') ? 'dashboard/coach_tabs.html.twig' : 'dashboard/client.html.twig';
 
-        $coachAdvice = $gemini->getDashboardAdvice($user);
+        // Conseil IA chargé en asynchrone (widget _coach_advice) pour ne pas bloquer le rendu.
+        $coachAdvice = null;
 
         return $this->render($template, [
             'clients'          => $clients,
